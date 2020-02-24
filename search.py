@@ -1,4 +1,5 @@
 from time import sleep
+from random import random
 from selenium.webdriver.common.by import By
 
 
@@ -7,11 +8,9 @@ class Search():
     def back_to_search_home(self):
         cnt = 0
         while True:
-            back_btn = self.driver.find_elements_by_id('com.instagram.android:id/action_bar_button_back')
+            self.push_back_btn()
             search_btn = self.driver.find_elements_by_id('com.instagram.android:id/action_bar_search_edit_text')
-            if back_btn:
-                back_btn[0].click()
-            elif search_btn:
+            if search_btn:
                 return
             sleep(1)
             cnt += 1
@@ -24,8 +23,9 @@ class Search():
         self.back_to_search_home()
 
         # 検索ワードを入力
-        self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').click()
-        self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').send_keys(keywords)
+        search_box = self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text')
+        search_box.click()
+        search_box.send_keys(keywords)
 
         # 一番上の候補をクリック
         self.check_scope_as_tag()
@@ -35,37 +35,46 @@ class Search():
         # とりあえず3回くらいloopを回す
         checked = {}
         names = []
-        cnt = 0
-        for img in self.check_each(checked, 5, 20):
+        for img in self.img_each(checked, 5, 20):
             img.click()
-            sleep(2)
-            names.append(self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').text)
+            sleep(1 + 3 * random())
+            names.append(self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').text.split(' ')[0])
             self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_button_back').click()
-            cnt += 1
-            if cnt > 10:
-                break
         print(names)
 
-    def check_each(self, checked, slide_cnt, needed_img_cnt):
-        '''キャッシュ保存（checked）によって、以下が達成される。必要に応じて調整。
+    def img_each(self, checked, slide_cnt=0, needed_img_cnt=50):
+        '''キャッシュ保存（checked）によって以下が達成される。必要に応じて調整。
         1. 同じ投稿をクリックしなくなる
         2. ある程度同じユーザの投稿をクリックしなくなる
+        3. たまに画像を飛ばしてしまう（スクロールや待機時間が要調整かも）
 
         Yield:
             img (webElement): 画像をフォーカスした webElement
         '''
 
+        # 終了チェック
+        if (slide_cnt < 0) or (needed_img_cnt <= 0):
+            return
+
         imgs = self.driver.find_elements_by_xpath(
             '//androidx.recyclerview.widget.RecyclerView[@resource-id="com.instagram.android:id/recycler_view"]/android.widget.ImageView')
+        has_picked = False
         for img in imgs:
             description = img.get_attribute('content-desc').split('―')[0].strip()
             if description not in checked:
                 checked[description] = True
-                yield img
+                has_picked = True
+                break
 
-        if slide_cnt > 0:
+        if has_picked:
+            yield img
+            needed_img_cnt -= 1
+        else:
             self.slide_to_next()
-            yield from self.check_each(slide_cnt - 1, checked)
+            slide_cnt -= 1
+
+        print(f'picked: {has_picked},', f'slide zan: {slide_cnt},', f'img zan: {needed_img_cnt}')
+        yield from self.check_each(checked, slide_cnt, needed_img_cnt)
 
     def check_scope_as_tag(self):
         btns = self.find_elements_continually(By.ID, 'com.instagram.android:id/tab_button_name_text')

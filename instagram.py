@@ -5,9 +5,10 @@ from appium.webdriver.common.mobileby import MobileBy
 from automata.addon import DriverEx
 from automata.search import Search
 from automata.post import Post
+from automata.profile import Profile
 
 
-class InstagramPixel(DriverEx, Search, Post):
+class InstagramPixel(DriverEx, Search, Post, Profile):
 
     def __init__(self):
         # driver を起動
@@ -36,6 +37,11 @@ class InstagramPixel(DriverEx, Search, Post):
             return btn[1]
         else:
             return None
+
+    def push_back_btn(self):
+        back_btn = self.driver.find_elements_by_id('com.instagram.android:id/action_bar_button_back')
+        if back_btn:
+            back_btn[0].click()
 
     def launch_instagram(self):
         # ホームからinstagramを起動

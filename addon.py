@@ -2,7 +2,6 @@ from time import sleep
 from selenium.common.exceptions import NoSuchElementException
 from appium.webdriver.extensions.android.nativekey import AndroidKey
 from selenium.webdriver.common.by import By
-from time import sleep
 
 
 class DriverEx():
