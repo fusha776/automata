@@ -1,5 +1,6 @@
 from time import sleep
 from random import random
+import re
 from selenium.webdriver.common.by import By
 
 
@@ -33,16 +34,15 @@ class Search():
         self.sort_results_by_newest()
 
         # とりあえず3回くらいloopを回す
-        checked = {}
         names = []
-        for img in self.img_each(checked, 5, 20):
+        for img in self.img_each(5, 20):
             img.click()
             sleep(1 + 3 * random())
             names.append(self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').text.split(' ')[0])
             self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_button_back').click()
         print(names)
 
-    def img_each(self, checked, slide_cnt=0, needed_img_cnt=50):
+    def img_each(self, slide_cnt=0, needed_img_cnt=50, checked=None):
         '''キャッシュ保存（checked）によって以下が達成される。必要に応じて調整。
         1. 同じ投稿をクリックしなくなる
         2. ある程度同じユーザの投稿をクリックしなくなる
@@ -55,6 +55,10 @@ class Search():
         # 終了チェック
         if (slide_cnt < 0) or (needed_img_cnt <= 0):
             return
+
+        # 初回ならmemoを初期化
+        if checked is None:
+            checked = {}
 
         imgs = self.driver.find_elements_by_xpath(
             '//androidx.recyclerview.widget.RecyclerView[@resource-id="com.instagram.android:id/recycler_view"]/android.widget.ImageView')
@@ -74,7 +78,48 @@ class Search():
             slide_cnt -= 1
 
         print(f'picked: {has_picked},', f'slide zan: {slide_cnt},', f'img zan: {needed_img_cnt}')
-        yield from self.check_each(checked, slide_cnt, needed_img_cnt)
+        yield from self.check_each(slide_cnt, needed_img_cnt, checked)
+
+    def gather_hashtags(self):
+        '''投稿コメントからハッシュタグを回収する
+
+        Condition:
+            投稿一覧画面（フルサイズ）が表示されていること
+
+        Return:
+            str[]: `#` 抜きのハッシュタグ
+        '''
+        detail = self.go_to_reply()
+        detail = detail.text
+        hashtags = re.findall('#(.+?)[\n| ]', detail.replace('#', ' #'))  # ハッシュ同士で挟まれたタグを拾うために、ブランクを付与
+        self.push_back_btn()  # 動画から戻れるように修正
+
+        return hashtags
+
+    def go_to_reply(self):
+        '''投稿一覧画面（フルサイズ）から、リプライ画面へ遷移する
+
+        Condition:
+            投稿一覧画面（フルサイズ）が表示されていること
+
+        Return:
+            webElement: リプライ画面のコメント内容を指した webElement
+        '''
+        cnt = 0
+        while True:
+            # リプライ画面へ来ていたら返却
+            detail = self.driver.find_elements_by_id('com.instagram.android:id/row_comment_textview_comment')
+            if detail:
+                return detail
+
+            # 1つ上の投稿が描画キャッシュされている可能性があるため、一番下のコメントを取得する
+            view = self.driver.find_elements_by_id('com.instagram.android:id/row_feed_comment_textview_layout')
+            if view:
+                view[-1].click()
+            sleep(1)
+            cnt += 1
+            if cnt >= 20:
+                raise Exception('リプライ画面へ遷移できませんでした')
 
     def check_scope_as_tag(self):
         btns = self.find_elements_continually(By.ID, 'com.instagram.android:id/tab_button_name_text')

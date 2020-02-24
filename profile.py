@@ -24,6 +24,9 @@ class Profile():
         el = self.driver.find_elements(By.XPATH, '//android.widget.TextView[@text="フォローする"]')
         if el:
             el[0].click()
+        el = self.driver.find_elements(By.XPATH, '//android.widget.TextView[@text="フォローバックする"]')
+        if el:
+            el[0].click()
 
     def unfollow(self):
         '''フォロー解除ボタンを押す
