@@ -19,23 +19,23 @@ class Search():
             if cnt >= 20:
                 raise Exception('検索ホームへ戻れませんでした')
 
-    def search(self, keywords):
+    def search(self, keyword):
         # 検索ホームへ移動
         self.push_search_btn()
         self.back_to_search_home()
 
         # 検索ワードを入力
         self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').click()
-        self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').send_keys(keywords)
+        self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').send_keys(keyword)
 
         # 一番上の候補をクリック
         self.check_scope_as_tag()
-        self.find_element_continually(By.XPATH, '//android.widget.TextView').click()
+        self.select_keyword_in_suggestions(keyword)
         self.sort_results_by_newest()
 
         # とりあえず3回くらいloopを回す
         names = []
-        for img in self.img_each(5, 20):
+        for img in self.img_each(5, 1):
             img.click()
             sleep(1 + 3 * random())
             names.append(self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').text.split(' ')[0])
@@ -128,6 +128,31 @@ class Search():
             投稿一覧画面（フルサイズ）が表示されていること
         '''
         self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').click()
+
+    def select_keyword_in_suggestions(self, keyword):
+        '''検索候補の中から、ルールベースで1つ選んで検索をかける。
+
+        優先順:
+            完全一致 > 検索ワードが部分一致 > 最上位の検索候補
+
+        Condition:
+            検索候補が表示されていること
+        '''
+        suggestions = self.find_elements_continually(By.ID, 'com.instagram.android:id/row_hashtag_textview_tag_name')
+        # 1. 完全一致
+        for s_i in suggestions:
+            if s_i.text.replace('#', '') == keyword:
+                s_i.click()
+                return
+
+        # 2. 検索ワードが部分一致
+        for s_i in suggestions:
+            if keyword in s_i.text:
+                s_i.click()
+                return
+
+        # 3. 最上位の検索候補
+        suggestions[0].click()
 
     def check_scope_as_tag(self):
         btns = self.find_elements_continually(By.ID, 'com.instagram.android:id/tab_button_name_text')
