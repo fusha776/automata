@@ -17,31 +17,44 @@ class InstagramPixel(DriverEx, Search, Post, Profile):
         self.driver = webdriver.Remote('http://localhost:4723/wd/hub', desired_caps)
         self.camera_storage = '/storage/emulated/0/DCIM/Camera'
 
-    def find_home_btn(self):
+    def push_home_btn(self):
         btn = self.find_elements_continually(MobileBy.ACCESSIBILITY_ID, 'ホーム')
         if btn:
-            return btn[0]
-        else:
-            return None
+            btn[0].click()
+            self.wait()
 
-    def find_search_btn(self):
+    def push_search_btn(self):
         btn = self.find_elements_continually(MobileBy.ACCESSIBILITY_ID, '検索・発見')
         if btn:
-            return btn[0]
-        else:
-            return None
+            btn[0].click()
+            self.wait()
 
-    def find_post_btn(self):
+    def push_post_btn(self):
         btn = self.find_elements_continually(MobileBy.ACCESSIBILITY_ID, 'カメラ')
         if bool(btn) & (len(btn) >= 1):
-            return btn[1]
-        else:
-            return None
+            btn[1].click()
+            self.wait()
 
-    def push_back_btn(self):
+    def push_app_back_btn(self):
+        '''アプリ内の「戻る」相当の要素をタッチする
+
+        Return:
+            bool: クリック可否
+        '''
         back_btn = self.driver.find_elements_by_id('com.instagram.android:id/action_bar_button_back')
         if back_btn:
             back_btn[0].click()
+            return True
+        return False
+
+    def push_forced_back_btn(self):
+        '''何らかの手段で前に戻ろうとする
+        まず画面のボタンから戻ろうとし（安定性が高い）、できなければ android key で前に戻る
+        '''
+        if self.push_app_back_btn():
+            return
+        else:
+            self.driver.keyevent(AndroidKey.BACK)
 
     def launch_instagram(self):
         # ホームからinstagramを起動

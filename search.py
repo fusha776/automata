@@ -9,24 +9,24 @@ class Search():
     def back_to_search_home(self):
         cnt = 0
         while True:
-            self.push_back_btn()
-            search_btn = self.driver.find_elements_by_id('com.instagram.android:id/action_bar_search_edit_text')
-            if search_btn:
+            home_signal = self.driver.find_elements_by_id('com.instagram.android:id/destination_hscroll')
+            if home_signal:
                 return
+            self.push_app_back_btn()
             sleep(1)
             cnt += 1
+            print(f'pushed back {cnt}')
             if cnt >= 20:
                 raise Exception('検索ホームへ戻れませんでした')
 
     def search(self, keywords):
         # 検索ホームへ移動
-        self.find_search_btn().click()
+        self.push_search_btn()
         self.back_to_search_home()
 
         # 検索ワードを入力
-        search_box = self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text')
-        search_box.click()
-        search_box.send_keys(keywords)
+        self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').click()
+        self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').send_keys(keywords)
 
         # 一番上の候補をクリック
         self.check_scope_as_tag()
@@ -78,7 +78,7 @@ class Search():
             slide_cnt -= 1
 
         print(f'picked: {has_picked},', f'slide zan: {slide_cnt},', f'img zan: {needed_img_cnt}')
-        yield from self.check_each(slide_cnt, needed_img_cnt, checked)
+        yield from self.img_each(slide_cnt, needed_img_cnt, checked)
 
     def gather_hashtags(self):
         '''投稿コメントからハッシュタグを回収する
@@ -92,7 +92,7 @@ class Search():
         detail = self.go_to_reply()
         detail = detail.text
         hashtags = re.findall('#(.+?)[\n| ]', detail.replace('#', ' #'))  # ハッシュ同士で挟まれたタグを拾うために、ブランクを付与
-        self.push_back_btn()  # 動画から戻れるように修正
+        self.push_forced_back_btn()
 
         return hashtags
 
@@ -120,6 +120,14 @@ class Search():
             cnt += 1
             if cnt >= 20:
                 raise Exception('リプライ画面へ遷移できませんでした')
+
+    def go_to_profile(self):
+        '''投稿一覧画面（フルサイズ）から、プロフィール画面へ遷移する
+
+        Condition:
+            投稿一覧画面（フルサイズ）が表示されていること
+        '''
+        self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').click()
 
     def check_scope_as_tag(self):
         btns = self.find_elements_continually(By.ID, 'com.instagram.android:id/tab_button_name_text')

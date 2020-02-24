@@ -9,7 +9,7 @@ class Post():
         '''
 
         self.switch_to_instagram_home()
-        self.find_post_btn().click()
+        self.push_post_btn()
         self.find_element_continually(By.ID, 'com.instagram.android:id/next_button_textview').click()
         self.find_element_continually(By.ID, 'com.instagram.android:id/next_button_textview').click()
         self.find_element_continually(By.ID, 'com.instagram.android:id/caption_text_view').send_keys(msg)
