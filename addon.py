@@ -55,9 +55,10 @@ class DriverEx():
 
     def save_photo(self, fpath, output_fname=None):
         if output_fname is None:
-            output_fname = fpath.split("/")[-1]
+            output_fname = fpath.split("\\")[-1]
         self.driver.push_file(f'{self.camera_storage}/{output_fname}',
                               source_path=fpath)
+        self.reboot_instagram
 
     def switch_to_android_home(self):
         # self.driver.press_keycode(AndroidKey.HOME)
