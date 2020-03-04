@@ -61,7 +61,19 @@ class InstagramPixel(DriverEx, Search, Post, Profile):
     def push_post_btn(self):
         btn = self.find_elements_continually(MobileBy.ACCESSIBILITY_ID, 'カメラ')
         if bool(btn) & (len(btn) >= 1):
-            btn[1].click()
+            btn[1].click()  # [0] は写真撮影画面へ飛ぶ
+            self.wait()
+
+    def push_activity_btn(self):
+        btn = self.find_elements_continually(MobileBy.ACCESSIBILITY_ID, 'アクティビティ')
+        if bool(btn) & (len(btn) >= 1):
+            btn[0].click()
+            self.wait()
+
+    def push_profile_btn(self):
+        btn = self.find_elements_continually(MobileBy.ACCESSIBILITY_ID, 'プロフィール')
+        if bool(btn) & (len(btn) >= 1):
+            btn[0].click()
             self.wait()
 
     def push_app_back_btn(self):

@@ -1,8 +1,7 @@
 import os
-from datetime import datetime
-import shutil
-from pathlib import Path
 from glob import glob
+from random import random
+from time import sleep
 import chardet
 from automata.instagram import InstagramPixel
 
@@ -24,6 +23,11 @@ class WorkFlow():
 
         self.pixel = InstagramPixel(worker_id)
         print('is launched.')
+
+    def switch_to_instagram_home(self):
+        '''インスタグラムのhomeへ移動する
+        '''
+        self.pixel.switch_to_instagram_home()
 
     def post_routine(self):
         '''指定時間にデータレイクを参照して投稿する
@@ -71,25 +75,80 @@ class WorkFlow():
                 return msg
             raise Exception('投稿ファイルセットの中にあるコメントの中身がブランクです')
 
-        def store_used_contents(self, content_path):
-            '''使用済の投稿ファイルをbackupディレクトリへ送る
-            実行した worker_id を判別用に持たせる
-            '''
-            now = datetime.now()
-            timestamp = now.strftime('%Y%m%d%H%M%S')
-            ym = now.strftime('%Y%m')
-            dst_path = f'{self.pixel.worker_group_lake_path}\\posted\\{ym}\\{timestamp}'
-            shutil.move(content_path, dst_path)
-            Path(f'{dst_path}\\{self.pixel.worker_id}').touch()
-
         # main
         cpath, img_path, txt_path = fetch_post_content(self)
         msg = get_message(txt_path)
         self.pixel.save_photo(img_path)
         self.pixel.post_photo(msg)
+        # DB更新
         self.pixel.dao.increase_action_count({'post': 1})
-        store_used_contents(self, cpath)
+        self.pixel.dao.store_used_contents(cpath)
 
-        def follow_users_according_to_hashtags(self):
-            '''ハッシュタグで検索をかけて、見つけたユーザをランダムにフォローする
-            '''
+    def push_fav_according_to_hashtags(self, hashtag, fav_x_times=5, skip_rate=0.40):
+        '''ハッシュタグで検索をかけて、見つけた投稿をランダムにファボする
+
+        Args:
+            hashtag (str): タグ検索をかけるキーワード
+            skip_rate (int): 画像をスキップする確率。全てクリックせずに肉入りらしさを出す。
+        '''
+        fav_cnt = 0
+        img_each = self.pixel.search(hashtag)
+        for img in img_each:
+            if fav_cnt >= fav_x_times:
+                break
+            if random() < skip_rate:
+                continue
+
+            img.click()
+            sleep(2 + 3 * random())
+            self.pixel.push_fav()
+            sleep(3 + 5 * random())
+            self.pixel.push_app_back_btn()
+            fav_cnt += 1
+        # DB更新
+        self.pixel.dao.increase_action_count({'fav': fav_cnt})
+
+    def follow_users_according_to_hashtags(self, hashtag, follow_x_times=5, skip_rate=0.90):
+        '''ハッシュタグで検索をかけて、見つけたユーザをランダムにフォローする
+        フォロー状況テーブルも更新する
+
+        Args:
+            hashtag (str): タグ検索をかけるキーワード
+            skip_rate (int): 画像をスキップする確率。全てクリックせずに肉入りらしさを出す。
+        '''
+        following_cnt = 0
+        img_each = self.pixel.search(hashtag)
+        for img in img_each:
+            if following_cnt >= follow_x_times:
+                break
+            if random() < skip_rate:
+                continue
+
+            img.click()
+            sleep(2 + 3 * random())
+            self.pixel.go_to_profile()
+            sleep(4 + 3 * random())
+            has_successed = self.pixel.follow()
+            profiles = self.pixel.fetch_profile()
+            sleep(3 + 5 * random())
+            self.pixel.push_app_back_btn()
+            sleep(1 + 1 * random())
+            self.pixel.push_app_back_btn()
+            if has_successed:
+                following_cnt += 1
+                self.pixel.dao.add_following(profiles['username'])
+
+        # アクション回数を更新
+        self.pixel.dao.increase_action_count({'follow': following_cnt})
+
+    def follow_back_from_activities(self):
+        '''フォローバックする
+
+        アクティビティの履歴から見るため、精度は荒い
+        '''
+
+    def ファボ返し(self):
+        pass
+
+    def dmを送るやつ(self):
+        pass

@@ -19,7 +19,18 @@ class Search():
             if cnt >= 20:
                 raise Exception('検索ホームへ戻れませんでした')
 
-    def search(self, keyword):
+    def search(self, keyword, slide_n_times=20, needed_imgs=200):
+        '''指定のキーワード元にタグ検索をかけ、
+        見つかった画像をイテレータとして返却する
+
+        Args:
+            keyword (str): タグ検索で使用するキーワード
+            slide_n_times (int): 下へスライドさせる最大回数
+            needed_imgs (int): イテレータで返却する最大の画像数
+
+        Return:
+            iter (webElement): 検索結果の画面候補をフォーカスしたwebElementが1つずつ返ってくるイテレータ
+        '''
         # 検索ホームへ移動
         self.push_search_btn()
         self.back_to_search_home()
@@ -28,32 +39,38 @@ class Search():
         self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').click()
         self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').send_keys(keyword)
 
-        # 一番上の候補をクリック
+        # 候補をクリック
         self.check_scope_as_tag()
         self.select_keyword_in_suggestions(keyword)
         self.sort_results_by_newest()
 
+        return self.img_each(slide_n_times, needed_imgs)
         # とりあえず3回くらいloopを回す
-        names = []
-        for img in self.img_each(5, 1):
-            img.click()
-            sleep(1 + 3 * random())
-            names.append(self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').text.split(' ')[0])
-            self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_button_back').click()
-        print(names)
+        # names = []
+        # for img in self.img_each(5, 1):
+        #     img.click()
+        #     sleep(1 + 3 * random())
+        #     names.append(self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').text.split(' ')[0])
+        #     self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_button_back').click()
+        # print(names)
 
-    def img_each(self, slide_cnt=0, needed_img_cnt=50, checked=None):
+    def img_each(self, slide_n_times=0, needed_imgs=50, checked=None):
         '''キャッシュ保存（checked）によって以下が達成される。必要に応じて調整。
         1. 同じ投稿をクリックしなくなる
         2. ある程度同じユーザの投稿をクリックしなくなる
         3. たまに画像を飛ばしてしまう（スクロールや待機時間が要調整かも）
+
+        Args:
+            slide_n_times (int): 下へスライドさせる最大回数
+            needed_imgs (int): イテレータで返却する最大の画像数
+            checked (dict): 同じ投稿をskipするためのキャッシュ（メモ化）
 
         Yield:
             img (webElement): 画像をフォーカスした webElement
         '''
 
         # 終了チェック
-        if (slide_cnt < 0) or (needed_img_cnt <= 0):
+        if (slide_n_times < 0) or (needed_imgs <= 0):
             return
 
         # 初回ならmemoを初期化
@@ -72,13 +89,13 @@ class Search():
 
         if has_picked:
             yield img
-            needed_img_cnt -= 1
+            needed_imgs -= 1
         else:
             self.slide_to_next()
-            slide_cnt -= 1
+            slide_n_times -= 1
 
-        print(f'picked: {has_picked},', f'slide zan: {slide_cnt},', f'img zan: {needed_img_cnt}')
-        yield from self.img_each(slide_cnt, needed_img_cnt, checked)
+        print(f'picked: {has_picked},', f'slide zan: {slide_n_times},', f'img zan: {needed_imgs}')
+        yield from self.img_each(slide_n_times, needed_imgs, checked)
 
     def gather_hashtags(self):
         '''投稿コメントからハッシュタグを回収する
@@ -129,6 +146,15 @@ class Search():
         '''
         self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').click()
 
+    def push_fav(self):
+        '''投稿をファボする
+
+        Condition:
+            投稿一覧画面（フルサイズ）が表示されていること
+
+        '''
+        self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_button_like').click()
+
     def select_keyword_in_suggestions(self, keyword):
         '''検索候補の中から、ルールベースで1つ選んで検索をかける。
 
@@ -136,7 +162,7 @@ class Search():
             完全一致 > 検索ワードが部分一致 > 最上位の検索候補
 
         Condition:
-            検索候補が表示されていること
+            検索画面（候補一覧）が表示されていること
         '''
         suggestions = self.find_elements_continually(By.ID, 'com.instagram.android:id/row_hashtag_textview_tag_name')
         # 1. 完全一致
@@ -183,4 +209,4 @@ class Search():
     def slide_to_next(self):
         '''3*3 ブロック分、検索結果画面を下へスライドする
         '''
-        self.driver.swipe(540, 1700, 540, 1700 - 370*3, 5000)
+        self.driver.swipe(540, 1700, 540, 1700 - 370*3, 3000 + 2000 * random())

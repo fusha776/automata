@@ -29,7 +29,7 @@ class DriverEx():
             if el:
                 return el
             sleep(1)
-        raise NoSuchElementException(self.msg_no_such_btn)
+        return None
 
     def find_elements_by_text_continually(self, text, sec=20):
         '''sec 秒 を上限として、指定した要素が見つかるまで探し続ける
@@ -40,7 +40,7 @@ class DriverEx():
             if el:
                 return el
             sleep(1)
-        raise NoSuchElementException(self.msg_no_such_btn)
+        return None
 
     def wait(self):
         '''画面がloadされるまで待つ。

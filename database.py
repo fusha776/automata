@@ -17,11 +17,11 @@ class Model():
 
     def create_tables(self):
         dm_histories = '''CREATE TABLE IF NOT EXISTS dm_histories (
-            woker_id TEXT,
+            worker_id TEXT,
             instagram_id TEXT,
             dm_message_id TEXT,
             sent_on TEXT,
-            PRIMARY KEY (woker_id, instagram_id)
+            PRIMARY KEY (worker_id, instagram_id)
         )'''
 
         dm_messages_mst = '''CREATE TABLE IF NOT EXISTS dm_messages_mst (
@@ -30,14 +30,13 @@ class Model():
             is_activated INTEGER
         )'''
 
-        follow_status = '''CREATE TABLE IF NOT EXISTS follow_status (
-            woker_id TEXT,
+        following_status = '''CREATE TABLE IF NOT EXISTS following_status (
+            worker_id TEXT,
             instagram_id TEXT,
-            is_followed INTEGER,
-            followed_on TEXT,
+            has_followed INTEGER,
             created_at TIMESTAMP,
             updated_at TIMESTAMP,
-            PRIMARY KEY (woker_id, instagram_id)
+            PRIMARY KEY (worker_id, instagram_id)
         )'''
 
         hashtag_groups_mst = '''CREATE TABLE IF NOT EXISTS hashtag_groups_mst (
@@ -81,7 +80,7 @@ class Model():
         with self.conn:
             self.conn.execute(dm_histories)
             self.conn.execute(dm_messages_mst)
-            self.conn.execute(follow_status)
+            self.conn.execute(following_status)
             self.conn.execute(hashtag_groups_mst)
             self.conn.execute(worker_settings)
             self.conn.execute(action_counters)

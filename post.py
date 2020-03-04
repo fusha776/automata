@@ -13,4 +13,5 @@ class Post():
         self.find_element_continually(By.ID, 'com.instagram.android:id/next_button_textview').click()
         self.find_element_continually(By.ID, 'com.instagram.android:id/next_button_textview').click()
         self.find_element_continually(By.ID, 'com.instagram.android:id/caption_text_view').send_keys(msg)
+        print('bef post')
         # self.find_element_continually(By.ID, 'com.instagram.android:id/next_button_textview').click()
