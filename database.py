@@ -34,6 +34,7 @@ class Model():
             worker_id TEXT,
             instagram_id TEXT,
             has_followed INTEGER,
+            is_follower INTEGER,
             created_at TIMESTAMP,
             updated_at TIMESTAMP,
             PRIMARY KEY (worker_id, instagram_id)

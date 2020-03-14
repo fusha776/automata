@@ -13,7 +13,7 @@ class Dao():
         self.worker_id = worker_id
         self.today = today
 
-        self.conn = sqlite3.connect(DATABASE_PATH)
+        self.conn = sqlite3.connect(DATABASE_PATH, detect_types=sqlite3.PARSE_DECLTYPES)
         self.cursor = self.conn.cursor()
 
     def store_used_contents(self, content_path):
@@ -78,12 +78,49 @@ class Dao():
                                     :follow, :unfollow, :others, :summary_cnt)
                 ''', updated)
 
-    def add_following(self, instagram_id):
+    def add_following(self, instagram_id, has_followed=1, is_follower=0):
         '''フォローを追加する
         '''
         now_timestamp = datetime.now()
         with self.conn:
             self.conn.execute('''INSERT OR REPLACE INTO following_status (
-                                      worker_id, instagram_id, has_followed, created_at, updated_at)
-                                  VALUES (?, ?, ?, ?, ?)
-                ''', (self.worker_id, instagram_id, 1, now_timestamp, now_timestamp))
+                                      worker_id, instagram_id, has_followed, is_follower, created_at, updated_at)
+                                  VALUES (?, ?, ?, ?, ?, ?)
+                ''', (self.worker_id, instagram_id, has_followed, is_follower, now_timestamp, now_timestamp))
+
+    def fetch_following_only(self):
+        '''フォローのみ状態のユーザを抽出する
+
+        Return:
+            dict: {instagram_id: updated_at}
+        '''
+        self.cursor.execute(''' SELECT
+                                    instagram_id, updated_at
+                                FROM
+                                    following_status
+                                WHERE
+                                    worker_id = ? and
+                                    has_followed = 1 and
+                                    is_follower = 0
+                            ''', (self.worker_id,))
+        q_res = self.cursor.fetchall()
+        users = {}
+        if q_res:
+            users = dict(q_res)
+        return users
+
+    def update_following(self, instagram_id, has_followed, is_follower):
+        '''フォロー状態を更新する
+        '''
+        now_timestamp = datetime.now()
+        with self.conn:
+            self.conn.execute('''UPDATE
+                                     following_status
+                                 SET
+                                     has_followed = ?,
+                                     is_follower =  ?,
+                                     updated_at = ?
+                                 WHERE
+                                     worker_id = ? and
+                                     instagram_id = ?
+                              ''', (has_followed, is_follower, now_timestamp, self.worker_id, instagram_id))

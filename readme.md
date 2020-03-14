@@ -9,6 +9,11 @@ https://www.photock.jp/
 
 ### Tips
 
+#### Emulator の起動
+<%AppData%>\Local\Android\Sdk\emulator\emulator @automata_pixel3
+<略>/Sdk\tools\emulator だと、pathの参照順が異なり？エラー落ちするので、こっちをkickする
+["Missing emulator engine program for 'x86' CPU"が発生する場合の対処法](https://www.taneyats.com/entry/android_emulator_command_error)
+
 DOM (webElement) の使いまわしは基本的に控えた方が良い
 描画が一回走りなおすと、前のODMをもう一度使える可能性はだいぶ低い
 
@@ -19,7 +24,7 @@ opencv のインストールで cmake が必要になり、たぶん Python2 が
 [Windows Global Install for opencv4nodejs](https://gist.github.com/adwellj/61e7f202bcfe5b96f312293e9c812ca6)
 
 uiautomatorviewer の格納先
-`<%AppData%>\Local\Android\Sdk\tools`
+`<%AppData%>\Local\Android\Sdk\tools\bin`
 
 appium の実装が描いてある
 [【Android】AppiumでAndroidのテストを自動化する](https://qiita.com/takumi0620/items/c08f81d5cbed7872e137)

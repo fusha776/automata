@@ -7,11 +7,13 @@ from appium.webdriver.common.mobileby import MobileBy
 from automata.addon import DriverEx
 from automata.search import Search
 from automata.post import Post
+from automata.activity import Avtivity
 from automata.profile import Profile
 from automata.dao import Dao
+from random import random
 
 
-class InstagramPixel(DriverEx, Search, Post, Profile):
+class InstagramPixel(DriverEx, Search, Post, Avtivity, Profile):
 
     def __init__(self, worker_id):
         # worker id は後で引数行きになる
@@ -127,3 +129,8 @@ class InstagramPixel(DriverEx, Search, Post, Profile):
                 print('load sucessed')
                 return
         raise Exception('ホーム画面へ遷移できませんでした')
+
+    def slide_to_next(self):
+        '''おおよそ1画面分、下へスライドする
+        '''
+        self.driver.swipe(540, 1700, 540, 1700 - 370*3, 3000 + 2000 * random())

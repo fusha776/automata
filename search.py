@@ -205,8 +205,3 @@ class Search():
         '''検索結果を人気順でソート
         '''
         self.find_elements_by_text_continually('トップ')[0].click()
-
-    def slide_to_next(self):
-        '''3*3 ブロック分、検索結果画面を下へスライドする
-        '''
-        self.driver.swipe(540, 1700, 540, 1700 - 370*3, 3000 + 2000 * random())

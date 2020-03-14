@@ -1,9 +1,11 @@
 import os
+from datetime import datetime, timedelta
 from glob import glob
 from random import random
 from time import sleep
 import chardet
 from automata.instagram import InstagramPixel
+from automata.properties import KEEPING_DAYS
 
 
 class WorkFlow():
@@ -36,7 +38,6 @@ class WorkFlow():
         def fetch_post_content(self):
             '''投稿時間設定から、投稿画像とコメントを取得
             '''
-
             # 指定時間 > any の順で、投稿ファイルセットを探す
             contents_paths = glob(f'{self.pixel.worker_group_lake_path}\\stock\\{self.post_timetable}\\*')
             if not contents_paths:
@@ -141,14 +142,82 @@ class WorkFlow():
         # アクション回数を更新
         self.pixel.dao.increase_action_count({'follow': following_cnt})
 
-    def follow_back_from_activities(self):
+    def follow_back_in_just_following(self, n_users=10, slide_n_times=20):
         '''フォローバックする
+
+        Args:
+            n_users (int): フォローする人数
+            slide_n_times (int): 下へスライドさせる最大回数
+
+        アクティビティの履歴から見るため、精度は荒い
+        アクティビティ経由のフォロワー表示は、フォロー日降順で並んでいて便利
+        '''
+        followings = self.pixel.fetch_activities()['followings']
+        if not followings:
+            return
+
+        followings[0].click()  # 複数見つかっても、1つ巡回すれば事足りる
+        following_cnt = self.pixel.follow_users_in_just_following(n_users, slide_n_times)
+        self.pixel.push_app_back_btn()
+        # アクション回数を更新
+        self.pixel.dao.increase_action_count({'follow': following_cnt})
+
+    def follow_back_in_just_favs(self, n_users=10, slide_n_times=20):
+        '''ファボした人をフォローバックする
+
+        Args:
+            n_users (int): フォローする人数
+            slide_n_times (int): 下へスライドさせる最大回数
 
         アクティビティの履歴から見るため、精度は荒い
         '''
+        favs = self.pixel.fetch_activities()['favs']
+        if not favs:
+            return
 
-    def ファボ返し(self):
-        pass
+        favs[0].click()  # 複数見つかっても、1つ巡回すれば事足りる
+        following_cnt = self.pixel.follow_users_in_just_fav(n_users, slide_n_times)
+        self.pixel.push_app_back_btn()
+        # アクション回数を更新
+        self.pixel.dao.increase_action_count({'follow': following_cnt})
+
+    def fav_back_in_just_favs(self):
+        '''ファボした人へファボ返しする (未実装)
+
+        Args:
+            n_users (int): ファボ返しする人数
+            slide_n_times (int): 下へスライドさせる最大回数
+
+        アクティビティの履歴から見るため、精度は荒い
+        '''
+        favs = self.pixel.fetch_activities()['favs']
+        if not favs:
+            return
+        favs[0].click()  # 複数見つかっても、1つ巡回すれば事足りる
 
     def dmを送るやつ(self):
         pass
+
+    def check_following_and_unfollow(self):
+        '''フォロー開始から一定期間経過してフォローバックがなければ、アンフォローする
+        '''
+        # フォロー状況をチェックする
+        following_only = self.pixel.dao.fetch_following_only()
+        status = self.pixel.check_follow_back_status(following_only.keys())
+
+        alive_from = datetime.now() - timedelta(days=KEEPING_DAYS)
+        unfollow_cnt = 0
+        for id_i in following_only:
+            # フォローバックを確認
+            if status[id_i]:
+                self.pixel.dao.update_following(id_i, has_followed=1, is_follower=1)
+                continue
+
+            # フォローバック無しで一定期間以上経過
+            if following_only[id_i] < alive_from:
+                self.pixel.unfollow_by_id(id_i)
+                self.pixel.dao.update_following(id_i, has_followed=0, is_follower=0)
+                unfollow_cnt += 1
+
+        # アクション回数を更新
+        self.pixel.dao.increase_action_count({'unfollow': unfollow_cnt})
