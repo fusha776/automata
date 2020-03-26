@@ -1,28 +1,26 @@
+import re
 from time import sleep
 from selenium.webdriver.common.by import By
 
 
 class Profile():
-
     def back_to_profile_home(self):
         cnt = 0
         while True:
             username_btn = self.driver.find_elements_by_id('com.instagram.android:id/title_view')
             if username_btn:
                 return
-
             # まずホームボタンの再プッシュを試す
             if cnt <= 10:
                 self.push_profile_btn()
             else:
                 self.push_app_back_btn()
-
             sleep(2)
             cnt += 1
             if cnt >= 20:
                 raise Exception('プロフィールホームへ戻れませんでした')
 
-    def follow(self):
+    def _follow(self):
         '''フォローボタンを押す
         ブロック他へファジーに対応するため、ボタンが見つからない場合はskip
 
@@ -42,7 +40,7 @@ class Profile():
             return True
         return False
 
-    def unfollow(self):
+    def _unfollow(self):
         '''フォロー解除ボタンを押す
         ブロック他へファジーに対応するため、ボタンが見つからない場合はskip
 
@@ -63,15 +61,15 @@ class Profile():
             return True
         return False
 
-    def fetch_profile(self):
+    def _fetch_profile(self):
         '''ユーザの基本情報を取得する
         ブロック他へファジーに対応するため、ボタンが見つからない場合はskip
 
+        Return:
+            dict[str or int]: key -> [username, name, posts, follower, following, website, bio]
+
         Condition:
             対象ユーザのprofile画面が表示されていること
-
-        Return:
-        list[str or int]: [username, ]
         '''
         # 省略されている場合を考慮して、解除のためにクリックする
         bio_el = self.find_elements_continually(By.ID, 'com.instagram.android:id/profile_header_bio_text', sec=10)
@@ -101,7 +99,24 @@ class Profile():
         profiles['following'] = int(profiles['following'].replace(',', ''))
         return profiles
 
-    def send_dm(self, msg):
+    def _check_ng(self):
+        '''プロフィール情報から、NG判定を行う
+        一旦、以下のルールでフォロー対象か否かを判断する
+        Rule: Bio に日本語が含まれている
+
+        Return:
+            bool: 条件を満たせば True
+
+        Condition:
+            対象ユーザのprofile画面が表示されていること
+        '''
+        def is_japanese(s):
+            return True if re.search(r'[ぁ-んァ-ン]') else False
+
+        bio = self._fetch_profile()['bio']
+        return not is_japanese(bio)
+
+    def _send_dm(self, msg):
         '''DMを送る
         ブロック他へファジーに対応するため、ボタンが見つからない場合はskip
 
@@ -125,7 +140,7 @@ class Profile():
             return False, e
         return True, None
 
-    def fav_latest_photo(self):
+    def _fav_latest_photo(self):
         '''プロフィール画面から、直近投稿をファボする
         ファボ返しなどで使用
 
@@ -140,7 +155,7 @@ class Profile():
             return 0
 
         photos[0].click()
-        self.push_fav()
+        self._push_fav()
         self.push_app_back_btn()
         return 1
 

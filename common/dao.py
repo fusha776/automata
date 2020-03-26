@@ -2,7 +2,8 @@ import sqlite3
 from datetime import datetime
 import shutil
 from pathlib import Path
-from automata.setting import DATABASE_PATH
+from automata.common.settings import DATABASE_PATH
+from automata.common.settings import NG_USER_SIZE
 
 
 class Dao():
@@ -124,3 +125,30 @@ class Dao():
                                      worker_id = ? and
                                      instagram_id = ?
                               ''', (has_followed, is_follower, now_timestamp, self.worker_id, instagram_id))
+
+    def fetch_ng_users(self):
+        self.cursor.execute(''' SELECT
+                                    instagram_id
+                                FROM
+                                    ng_users
+                                WHERE
+                                    worker_group = ?
+                                ORDER BY
+                                    created_on DESC
+                                LIMIT
+                                    ?
+                            ''', (self.worker_group, NG_USER_SIZE))
+        return self.cursor.fetchall()
+
+    def add_ng_users(self, worker_group, ng_users):
+        today = datetime.now().strftime('%Y%m%d')
+        qs = []
+        for insta_id in ng_users:
+            qs.append((worker_group, insta_id, today, 0))
+
+        with self.conn:
+            self.conn.executemany('''INSERT INTO
+                                     ng_users
+                                 VALUES
+                                     (?, ?, ?, ?, ?, ?)
+                                  ''', qs)

@@ -1,6 +1,5 @@
 import sqlite3
-# from contextlib import closing
-from automata.setting import DATABASE_PATH, LAKE_ROOT_PATH
+from automata.common.settings import DATABASE_PATH, LAKE_ROOT_PATH
 
 
 class Model():
@@ -78,6 +77,14 @@ class Model():
             PRIMARY KEY (worker_id, operated_on)
         )'''
 
+        ng_users = '''CREATE TABLE IF NOT EXISTS ng_users (
+            worker_group TEXT,
+            instagram_id TEXT,
+            created_on TEXT,
+            is_permanent INTEGER,
+            PRIMARY KEY (worker_group, instagram_id)
+        )'''
+
         with self.conn:
             self.conn.execute(dm_histories)
             self.conn.execute(dm_messages_mst)
@@ -85,6 +92,7 @@ class Model():
             self.conn.execute(hashtag_groups_mst)
             self.conn.execute(worker_settings)
             self.conn.execute(action_counters)
+            self.conn.execute(ng_users)
 
     def migrate(self):
         '''マスタ他のレコードを、実行するたびに洗い替えする

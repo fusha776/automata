@@ -4,19 +4,33 @@ from appium import webdriver
 from appium.webdriver.extensions.android.nativekey import AndroidKey
 from appium.webdriver.common.mobileby import MobileBy
 
-from automata.addon import DriverEx
-from automata.search import Search
-from automata.post import Post
-from automata.activity import Avtivity
-from automata.profile import Profile
-from automata.dao import Dao
+from automata.instagram.addon import DriverEx
+from automata.instagram.search import Search
+from automata.instagram.post import Post
+from automata.instagram.activity import Avtivity
+from automata.instagram.profile import Profile
+from automata.common.dao import Dao
 from random import random
 
 
 class InstagramPixel(DriverEx, Search, Post, Avtivity, Profile):
+    '''Instagramの操作を管理する
+    各メソッドを呼び出す際の前提は以下
 
-    def __init__(self, worker_id):
-        # worker id は後で引数行きになる
+    private method: 特定の画面が表示されていること
+    通常 method: Instagramが起動していること
+    Instagram 起動系: デバイスが起動していること
+    '''
+
+    def __init__(self, worker_id, dryrun=False):
+        '''全体で共通して使用する画面操作インスタンスを生成
+
+        Args:
+            worker_id (str): 業務制御回りのパラメータを取得するid
+            dryrun (bool): 画面投稿などの一部操作を直前で終わらせる
+        '''
+
+        # worker id は後で実行時の引数行きになる
         self.worker_id = worker_id
 
         # 実行日を取得
@@ -42,11 +56,21 @@ class InstagramPixel(DriverEx, Search, Post, Avtivity, Profile):
         self.follow_per_boot = q_res[12]
         self.unfollow_per_boot = q_res[13]
 
+        q_res = self.dao.fetch_ng_users()
+        self.ng_users = set(q_res)
+
         # driver を起動
         desired_caps = {}
         desired_caps['platformName'] = 'Android'
         self.driver = webdriver.Remote('http://localhost:4723/wd/hub', desired_caps)
         self.camera_storage = '/storage/emulated/0/DCIM/Camera'
+
+        # core動作インスタンスを生成
+        # self.ex = DriverEx()
+        # self.search = Search(self.ex)
+        # self.post = Post(self.ex)
+        # self.activity = Avtivity(self.ex)
+        # self.profile = Profile(self.ex)
 
     def push_home_btn(self):
         btn = self.find_elements_continually(MobileBy.ACCESSIBILITY_ID, 'ホーム')

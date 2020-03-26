@@ -4,8 +4,8 @@ from glob import glob
 from random import random
 from time import sleep
 import chardet
-from automata.instagram import InstagramPixel
-from automata.properties import KEEPING_DAYS
+from automata.instagram.instagram import InstagramPixel
+from automata.common.settings import KEEPING_DAYS
 
 
 class WorkFlow():
@@ -102,7 +102,7 @@ class WorkFlow():
 
             img.click()
             sleep(2 + 3 * random())
-            self.pixel.push_fav()
+            self.pixel._push_fav()
             sleep(3 + 5 * random())
             self.pixel.push_app_back_btn()
             fav_cnt += 1
@@ -111,7 +111,6 @@ class WorkFlow():
 
     def follow_users_according_to_hashtags(self, hashtag, follow_x_times=5, skip_rate=0.90):
         '''ハッシュタグで検索をかけて、見つけたユーザをランダムにフォローする
-        フォロー状況テーブルも更新する
 
         Args:
             hashtag (str): タグ検索をかけるキーワード
@@ -127,10 +126,10 @@ class WorkFlow():
 
             img.click()
             sleep(2 + 3 * random())
-            self.pixel.go_to_profile()
+            self.pixel._go_to_profile()
             sleep(4 + 3 * random())
-            has_successed = self.pixel.follow()
-            profiles = self.pixel.fetch_profile()
+            has_successed = self.pixel._follow()
+            profiles = self.pixel._fetch_profile()
             sleep(3 + 5 * random())
             self.pixel.push_app_back_btn()
             sleep(1 + 1 * random())
@@ -152,18 +151,20 @@ class WorkFlow():
         アクティビティの履歴から見るため、精度は荒い
         アクティビティ経由のフォロワー表示は、フォロー日降順で並んでいて便利
         '''
-        followings = self.pixel.fetch_activities()['followings']
+        followings = self.pixel._fetch_activities()['followings']
         if not followings:
             return
 
         followings[0].click()  # 複数見つかっても、1つ巡回すれば事足りる
-        following_cnt = self.pixel.follow_users_in_just_following(n_users, slide_n_times)
+        following_cnt, additional_ng = self.pixel._follow_users_in_just_following(n_users, slide_n_times)
         self.pixel.push_app_back_btn()
         # アクション回数を更新
         self.pixel.dao.increase_action_count({'follow': following_cnt})
+        # NGユーザを追加
+        self.pixel.dao.add_ng_users({'follow': following_cnt})
 
-    def follow_back_in_just_favs(self, n_users=10, slide_n_times=20):
-        '''ファボした人をフォローバックする
+    def follow_in_just_favs(self, n_users=10, slide_n_times=20):
+        '''ファボした人をフォローする
 
         Args:
             n_users (int): フォローする人数
@@ -176,7 +177,7 @@ class WorkFlow():
             return
 
         favs[0].click()  # 複数見つかっても、1つ巡回すれば事足りる
-        following_cnt = self.pixel.follow_users_in_just_fav(n_users, slide_n_times)
+        following_cnt = self.pixel._follow_users_in_just_fav(n_users, slide_n_times)
         self.pixel.push_app_back_btn()
         # アクション回数を更新
         self.pixel.dao.increase_action_count({'follow': following_cnt})

@@ -5,16 +5,19 @@ from selenium.webdriver.common.by import By
 
 
 class Search():
-
     def back_to_search_home(self):
         cnt = 0
         while True:
             home_signal = self.driver.find_elements_by_id('com.instagram.android:id/destination_hscroll')
             if home_signal:
                 return
-            self.push_app_back_btn()
+            # まずホームボタンの再プッシュを試す
+            if cnt <= 10:
+                self.push_search_btn()
+            else:
+                self.push_app_back_btn()
             sleep(1)
-            cnt += 1
+            cnt += 2
             print(f'pushed back {cnt}')
             if cnt >= 20:
                 raise Exception('検索ホームへ戻れませんでした')
@@ -40,21 +43,21 @@ class Search():
         self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_search_edit_text').send_keys(keyword)
 
         # 候補をクリック
-        self.check_scope_as_tag()
-        self.select_keyword_in_suggestions(keyword)
-        self.sort_results_by_newest()
+        self._check_scope_as_tag()
+        self._select_keyword_in_suggestions(keyword)
+        self._sort_results_by_newest()
 
-        return self.img_each(slide_n_times, needed_imgs)
+        return self._img_each(slide_n_times, needed_imgs)
         # とりあえず3回くらいloopを回す
         # names = []
-        # for img in self.img_each(5, 1):
+        # for img in self._img_each(5, 1):
         #     img.click()
         #     sleep(1 + 3 * random())
         #     names.append(self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').text.split(' ')[0])
         #     self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_button_back').click()
         # print(names)
 
-    def img_each(self, slide_n_times=0, needed_imgs=50, checked=None):
+    def _img_each(self, slide_n_times=0, needed_imgs=50, checked=None):
         '''キャッシュ保存（checked）によって以下が達成される。必要に応じて調整。
         1. 同じ投稿をクリックしなくなる
         2. ある程度同じユーザの投稿をクリックしなくなる
@@ -67,6 +70,9 @@ class Search():
 
         Yield:
             img (webElement): 画像をフォーカスした webElement
+
+        Condition:
+            [検索] - [検索ワード] - [検索結果]: 検索結果画面が表示されていること
         '''
 
         # 終了チェック
@@ -95,32 +101,32 @@ class Search():
             slide_n_times -= 1
 
         print(f'picked: {has_picked},', f'slide zan: {slide_n_times},', f'img zan: {needed_imgs}')
-        yield from self.img_each(slide_n_times, needed_imgs, checked)
+        yield from self._img_each(slide_n_times, needed_imgs, checked)
 
-    def gather_hashtags(self):
+    def _gather_hashtags(self):
         '''投稿コメントからハッシュタグを回収する
-
-        Condition:
-            投稿一覧画面（フルサイズ）が表示されていること
 
         Return:
             str[]: `#` 抜きのハッシュタグ
+
+        Condition:
+            投稿一覧画面（フルサイズ）が表示されていること
         '''
-        detail = self.go_to_reply()
+        detail = self._go_to_reply()
         detail = detail.text
         hashtags = re.findall('#(.+?)[\n| ]', detail.replace('#', ' #'))  # ハッシュ同士で挟まれたタグを拾うために、ブランクを付与
         self.push_forced_back_btn()
 
         return hashtags
 
-    def go_to_reply(self):
+    def _go_to_reply(self):
         '''投稿一覧画面（フルサイズ）から、リプライ画面へ遷移する
-
-        Condition:
-            投稿一覧画面（フルサイズ）が表示されていること
 
         Return:
             webElement: リプライ画面のコメント内容を指した webElement
+
+        Condition:
+            投稿一覧画面（フルサイズ）が表示されていること
         '''
         cnt = 0
         while True:
@@ -138,7 +144,7 @@ class Search():
             if cnt >= 20:
                 raise Exception('リプライ画面へ遷移できませんでした')
 
-    def go_to_profile(self):
+    def _go_to_profile(self):
         '''投稿一覧画面（フルサイズ）から、プロフィール画面へ遷移する
 
         Condition:
@@ -146,23 +152,22 @@ class Search():
         '''
         self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').click()
 
-    def push_fav(self):
+    def _push_fav(self):
         '''投稿をファボする
 
         Condition:
-            投稿一覧画面（フルサイズ）が表示されていること
-
+            投稿一覧画面（フルサイズ）を表示
         '''
         self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_button_like').click()
 
-    def select_keyword_in_suggestions(self, keyword):
+    def _select_keyword_in_suggestions(self, keyword):
         '''検索候補の中から、ルールベースで1つ選んで検索をかける。
 
         優先順:
             完全一致 > 検索ワードが部分一致 > 最上位の検索候補
 
         Condition:
-            検索画面（候補一覧）が表示されていること
+            [検索] - [検索ワード選択]: 検索ワード選択画面を表示
         '''
         suggestions = self.find_elements_continually(By.ID, 'com.instagram.android:id/row_hashtag_textview_tag_name')
         # 1. 完全一致
@@ -180,7 +185,12 @@ class Search():
         # 3. 最上位の検索候補
         suggestions[0].click()
 
-    def check_scope_as_tag(self):
+    def _check_scope_as_tag(self):
+        '''「タグ」タブを選択する
+
+        Condition:
+            [検索] - [検索ワード選択]: 検索ワード選択画面を表示
+        '''
         btns = self.find_elements_continually(By.ID, 'com.instagram.android:id/tab_button_name_text')
         for btn in btns:
             if btn.text == 'タグ':
@@ -188,7 +198,12 @@ class Search():
                 return
         raise Exception('検索タグを押せませんでした')
 
-    def check_scope_as_account(self):
+    def _check_scope_as_account(self):
+        '''「アカウント」タブを選択する
+
+        Condition:
+            [検索] - [検索ワード選択]: 検索ワード選択画面を表示
+        '''
         btns = self.find_elements_continually(By.ID, 'com.instagram.android:id/tab_button_name_text')
         for btn in btns:
             if btn.text == 'アカウント':
@@ -196,12 +211,18 @@ class Search():
                 return
         raise Exception('検索タグを押せませんでした')
 
-    def sort_results_by_newest(self):
+    def _sort_results_by_newest(self):
         '''検索結果を新着順でソート
+
+        Condition:
+            [検索] - [検索ワード選択] - [検索結果一覧]: 検索結果画面を表示
         '''
         self.find_elements_by_text_continually('最近')[0].click()
 
-    def sort_results_by_popularity(self):
+    def _sort_results_by_popularity(self):
         '''検索結果を人気順でソート
+
+        Condition:
+            [検索] - [検索ワード選択] - [検索結果一覧]: 検索結果画面を表示
         '''
         self.find_elements_by_text_continually('トップ')[0].click()
