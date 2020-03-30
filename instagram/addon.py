@@ -9,7 +9,7 @@ class DriverEx():
     '''
     msg_no_such_btn = 'An element could not be located on the page using the given search parameters.'
 
-    def find_element_continually(self, by, id_, sec=20):
+    def find_element_continually(self, by, id_, sec=30):
         '''sec 秒 を上限として、指定した要素が見つかるまで探し続ける
         '''
         sec = int(sec)
@@ -20,7 +20,7 @@ class DriverEx():
             sleep(1)
         raise NoSuchElementException(self.msg_no_such_btn)
 
-    def find_elements_continually(self, by, id_, sec=20):
+    def find_elements_continually(self, by, id_, sec=30):
         '''sec 秒 を上限として、指定した要素が見つかるまで探し続ける
         '''
         sec = int(sec)
@@ -31,7 +31,7 @@ class DriverEx():
             sleep(1)
         return None
 
-    def find_elements_by_text_continually(self, text, sec=20):
+    def find_elements_by_text_continually(self, text, sec=30):
         '''sec 秒 を上限として、指定した要素が見つかるまで探し続ける
         '''
         sec = int(sec)
@@ -46,7 +46,7 @@ class DriverEx():
         '''画面がloadされるまで待つ。
         一定時間経ってもloadが完了しなかったらFalseを返す。
         '''
-        for i in range(0, 20):
+        for i in range(0, 30):
             has_loaded = self.driver.find_element_by_class_name('android.widget.FrameLayout')
             if has_loaded:
                 return True

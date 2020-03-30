@@ -41,20 +41,21 @@ class InstagramPixel(DriverEx, Search, Post, Avtivity, Profile):
 
         # DBからコンフィグを取得
         q_res = self.dao.fetch_worker_settings()
-        self.worker_group = q_res[0]
-        self.worker_group_lake_path = q_res[1]
-        self.dm_message_id = q_res[2]
-        self.hashtag_group = q_res[3]
-        self.post_per_day = q_res[4]
-        self.dm_per_day = q_res[5]
-        self.fav_per_day = q_res[6]
-        self.follow_per_day = q_res[7]
-        self.unfollow_per_day = q_res[8]
-        self.post_per_boot = q_res[9]
-        self.dm_per_boot = q_res[10]
-        self.fav_per_boot = q_res[11]
-        self.follow_per_boot = q_res[12]
-        self.unfollow_per_boot = q_res[13]
+        self.login_id = q_res[0]
+        self.worker_group = q_res[1]
+        self.worker_group_lake_path = q_res[2]
+        self.dm_message_id = q_res[3]
+        self.hashtag_group = q_res[4]
+        self.post_per_day = q_res[5]
+        self.dm_per_day = q_res[6]
+        self.fav_per_day = q_res[7]
+        self.follow_per_day = q_res[8]
+        self.unfollow_per_day = q_res[9]
+        self.post_per_boot = q_res[10]
+        self.dm_per_boot = q_res[11]
+        self.fav_per_boot = q_res[12]
+        self.follow_per_boot = q_res[13]
+        self.unfollow_per_boot = q_res[14]
 
         q_res = self.dao.fetch_ng_users()
         self.ng_users = set(q_res)

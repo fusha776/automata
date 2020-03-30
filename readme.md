@@ -33,3 +33,6 @@ appium の実装が描いてある
 
 sqlite3について
 https://stackoverflow.com/questions/19522505/using-sqlite3-in-python-with-with-keyword
+
+Android のアプリ通知をOFFにしておかないと、通知をタッチしてしまい詰む
+ライブ配信通知もOFFにしたい

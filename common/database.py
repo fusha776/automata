@@ -48,6 +48,9 @@ class Model():
         worker_settings = '''CREATE TABLE IF NOT EXISTS worker_settings (
             worker_id TEXT PRIMARY KEY,
             description TEXT,
+            login_id TEXT,
+            password TEXT,
+            client TEXT,
             worker_group TEXT,
             worker_group_lake_path TEXT,
             dm_message_id TEXT,
@@ -99,13 +102,15 @@ class Model():
         '''
 
         worker_settings = '''INSERT OR REPLACE INTO worker_settings (
-                                 worker_id, description, worker_group,
+                                 worker_id, description, login_id, password, client, worker_group,
                                  worker_group_lake_path, dm_message_id, hashtag_group,
                                  post_per_day, dm_per_day, fav_per_day, follow_per_day, unfollow_per_day,
                                  post_per_boot, dm_per_boot, fav_per_boot, follow_per_boot, unfollow_per_boot)
-                             VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                             VALUES(?, ?, ?, ?, ?, ?,
+                                    ?, ?, ?, ?, ?, ?,
+                                    ?, ?, ?, ?, ?, ?, ?)
         '''
-        workers = [('arc_corp_1', 'DM送信 No.1（アークコーポレーション）', 'dm_arc',
+        workers = [('arc_corp_1', 'DM送信 No.1（アークコーポレーション）', 'poyomaru555', 'itsumono', '動作テスト用', 'dm_arc',
                     f'{LAKE_ROOT_PATH}\\dm_arc', 'apparel_arc', None,
                     2, 20, None, None, None,
                     1, 10, None, None, None)
@@ -119,3 +124,13 @@ if __name__ == '__main__':
     model = Model()
     model.create_tables()
     model.migrate()
+
+'''
+worker追加のサンプルSQL
+INSERT INTO worker_settings
+VALUES
+("nine_japan_3", "フォロー、アンフォロー、いいね", "poyomaru555", "itsumono", "動作テスト", "action_nj",
+                    "c/Users/bell/python/project/instagram/appium/lake/action_nj", "None", "None",
+                    0, 0, 20, 100, 20,
+                    0, 0, 10, 50, 10);
+'''

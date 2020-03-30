@@ -15,6 +15,7 @@ class Dao():
         self.today = today
 
         self.conn = sqlite3.connect(DATABASE_PATH, detect_types=sqlite3.PARSE_DECLTYPES)
+        self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
 
     def store_used_contents(self, content_path):
@@ -30,7 +31,7 @@ class Dao():
 
     def fetch_worker_settings(self):
         self.cursor.execute(''' SELECT
-                                    worker_group, worker_group_lake_path, dm_message_id, hashtag_group,
+                                    login_id, worker_group, worker_group_lake_path, dm_message_id, hashtag_group,
                                     post_per_day, dm_per_day, fav_per_day, follow_per_day, unfollow_per_day,
                                     post_per_boot, dm_per_boot, fav_per_boot, follow_per_boot, unfollow_per_boot
                                 FROM
@@ -89,6 +90,21 @@ class Dao():
                                   VALUES (?, ?, ?, ?, ?, ?)
                 ''', (self.worker_id, instagram_id, has_followed, is_follower, now_timestamp, now_timestamp))
 
+    def save_unfollow(self, insta_id):
+        '''アンフォローを記録する
+        '''
+        now_timestamp = datetime.now()
+        with self.conn:
+            self.conn.execute('''UPDATE
+                                     following_status
+                                 SET
+                                     has_followed = 0,
+                                     updated_at = ?
+                                 WHERE
+                                     worker_id = ? and
+                                     instagram_id = ?
+                              ''', (now_timestamp, self.worker_id, insta_id))
+
     def fetch_following_only(self):
         '''フォローのみ状態のユーザを抽出する
 
@@ -127,17 +143,19 @@ class Dao():
                               ''', (has_followed, is_follower, now_timestamp, self.worker_id, instagram_id))
 
     def fetch_ng_users(self):
+
         self.cursor.execute(''' SELECT
                                     instagram_id
                                 FROM
-                                    ng_users
+                                    ng_users t1 INNER JOIN worker_settings t2 ON
+                                        t1.worker_group = t2.worker_group
                                 WHERE
-                                    worker_group = ?
+                                    t2.worker_id = ?
                                 ORDER BY
                                     created_on DESC
                                 LIMIT
                                     ?
-                            ''', (self.worker_group, NG_USER_SIZE))
+                            ''', (self.worker_id, NG_USER_SIZE))
         return self.cursor.fetchall()
 
     def add_ng_users(self, worker_group, ng_users):
@@ -152,3 +170,20 @@ class Dao():
                                  VALUES
                                      (?, ?, ?, ?, ?, ?)
                                   ''', qs)
+
+    def fetch_valid_followings(self):
+        '''現在有効なフォロー中ユーザをすべて取得する
+        '''
+        self.cursor.execute(''' SELECT
+                                    instagram_id,
+                                    updated_at
+                                FROM
+                                    following_status
+                                WHERE
+                                    has_followed = 1
+                                ORDER BY
+                                    updated_at ASC
+                                LIMIT
+                                    1000
+                            ''')
+        return self.cursor.fetchall()

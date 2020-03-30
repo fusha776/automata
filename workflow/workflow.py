@@ -5,7 +5,8 @@ from random import random
 from time import sleep
 import chardet
 from automata.instagram.instagram import InstagramPixel
-from automata.common.settings import KEEPING_DAYS
+from automata.common.settings import KEEPING_DAYS, FLLOWING_ALIVE_DAYS
+from automata.common.settings import wait
 
 
 class WorkFlow():
@@ -18,13 +19,12 @@ class WorkFlow():
         今は一台しか稼働させず、立ち上げっぱなしの前提なので後ろ倒し可能
     '''
 
-    def __init__(self):
+    def __init__(self, worker_id, post_timetable='any'):
         # これはたぶん起動時の引数になる
-        worker_id = 'arc_corp_1'
-        self.post_timetable = 'any'
-
+        self.worker_id = worker_id
+        self.post_timetable = post_timetable
         self.pixel = InstagramPixel(worker_id)
-        print('is launched.')
+        print('worker is loaded.')
 
     def switch_to_instagram_home(self):
         '''インスタグラムのhomeへ移動する
@@ -222,3 +222,79 @@ class WorkFlow():
 
         # アクション回数を更新
         self.pixel.dao.increase_action_count({'unfollow': unfollow_cnt})
+
+    def unfollow_expires_users(self, actions):
+        '''フォローしてから一定期間を超えたユーザをアンフォローする
+
+        Args:
+            actions (int): 実行する action の回数
+        '''
+
+        def fetch_users_to_unfollow(self):
+            users_and_days = self.pixel.dao.fetch_valid_followings()
+            expires_date = datetime.now() - timedelta(days=FLLOWING_ALIVE_DAYS)
+
+            users_to_unfollow = []
+            for user in users_and_days:
+                if user['updated_at'] < expires_date:
+                    users_to_unfollow.append(user['instagram_id'])
+            return users_to_unfollow
+
+        users_to_unfollow = fetch_users_to_unfollow(self)
+        unfollow_cnt = 0
+        unfollowed_ids = []
+        for id_i in users_to_unfollow:
+            if unfollow_cnt >= actions:
+                break
+            is_successful = self.pixel.unfollow_by_id(id_i)
+            if is_successful:
+                unfollowed_ids.append(id_i)
+                unfollow_cnt += 1
+
+        # アクション回数を更新
+        for id_i in unfollowed_ids:
+            self.pixel.dao.save_unfollow(id_i)
+        self.pixel.dao.increase_action_count({'unfollow': unfollow_cnt})
+
+    def follow_followers_friends(self, actions):
+        '''自分のフォロワーがフォロー中のユーザをフォローする（ややこしい）
+
+        Args:
+            actions (int): 実行する action の回数
+        '''
+        self.pixel.back_to_profile_home()
+        self.pixel._switch_to_followers()
+
+        cnt = 0
+        for my_follower in self.pixel._each_recent_follower_ids():
+            print(f'each in. my follower:{my_follower.text}')
+            if cnt >= actions:
+                print(f'break in cnt:{cnt} > actions:{actions}')
+                break
+            my_follower.click()
+            wait()
+
+            # 非公開ユーザなら飛ばす
+            if self.pixel._check_private():
+                self.pixel.push_app_back_btn()  # 自分のフォロワー画面へ移動
+                continue
+
+            self.pixel._switch_to_following()
+            wait()
+            new_users, is_successful = self.pixel._follow_in_following(actions - cnt)
+            cnt += len(new_users)
+            wait()
+
+            # 画面を元に戻す
+            self.pixel.back_to_profile_home()
+            self.pixel._switch_to_followers()
+            # self.pixel.push_app_back_btn()  # フォロワーのプロフTOPへ移動
+            # wait()
+            # self.pixel.push_app_back_btn()  # 自分のフォロワー画面へ移動
+
+        # # テーブルを更新
+        # for id_i in followed_users:
+        #     self.pixel.dao.add_following(id_i, has_followed=1, is_follower=0)
+
+        # # アクション回数を更新
+        # self.pixel.dao.increase_action_count({'follow': cnt})
