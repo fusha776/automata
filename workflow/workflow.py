@@ -20,11 +20,10 @@ class WorkFlow():
     '''
 
     def __init__(self, worker_id, post_timetable='any'):
-        # これはたぶん起動時の引数になる
         self.worker_id = worker_id
         self.post_timetable = post_timetable
         self.pixel = InstagramPixel(worker_id)
-        print('worker is loaded.')
+        print(f'worker:{self.worker_id} is loaded.')
 
     def switch_to_instagram_home(self):
         '''インスタグラムのhomeへ移動する
@@ -199,7 +198,7 @@ class WorkFlow():
     def dmを送るやつ(self):
         pass
 
-    def check_following_and_unfollow(self):
+    def unfollow_expires(self):
         '''フォロー開始から一定期間経過してフォローバックがなければ、アンフォローする
         '''
         # フォロー状況をチェックする
@@ -256,14 +255,58 @@ class WorkFlow():
             self.pixel.dao.save_unfollow(id_i)
         self.pixel.dao.increase_action_count({'unfollow': unfollow_cnt})
 
-    def follow_followers_friends(self, actions):
+    def unfollow_no_followbacks(self, actions, max_user_x_times=300):
+        '''フォロバ無しのアカウントを、フォロワー一覧の表示順で外していく
+
+        フォローバック確認：
+            相手先のフォロー中を表示し、自分が一番上に来ていたらフォロバ有り
+
+        Args:
+            actions (int): 実行する action の回数
+            max_user_x_times (int): フォローバックを確認する最大のフォロワー数
+        '''
+        self.pixel.back_to_profile_home()
+        self.pixel._switch_to_following()
+
+        cnt = 0
+        for my_follower in self.pixel._each_recent_follower_ids(max_user_x_times=max_user_x_times):
+            print(f'each in. check my follower:{my_follower.text}')
+            if cnt >= actions:
+                print(f'break in cnt:{cnt} > actions:{actions}')
+                break
+
+            # 自分のフォロワーのフォロー中へ遷移
+            my_follower.click()
+            wait()
+
+            # フォロバ無しをフォロ解除する
+            _, is_successful = self.pixel._unfollow_if_no_followback(my_follower.text)
+
+            self.push_app_back_btn()
+
+    def follow_followers_friends(self, actions, switch_rate=0.8):
         '''自分のフォロワーがフォロー中のユーザをフォローする（ややこしい）
 
         Args:
             actions (int): 実行する action の回数
+            switch_rate (float): フォローの代わりにfavする確率
+
+        WARN:
+            インスタグラムの Action Block が厳しい
+            今のところの予想は以下
+
+            * 一定時間以内の最大回数
+            * 一定回数以上、連続して同じアクション？
+
+            これ以上（Bot予測モデルとか異常検知とか）されてると、結構きつくなるかも
+            最悪でも、一回のアクションを少なくして定期的に呼び出せばいけるとは思う
+            イタチごっこしてやる
         '''
         self.pixel.back_to_profile_home()
-        self.pixel._switch_to_followers()
+        is_loaded = self.pixel._switch_to_followers()
+        if not is_loaded:
+            print('自分のフォロワー一覧へ移動できませんでした')
+            return
 
         cnt = 0
         for my_follower in self.pixel._each_recent_follower_ids():
@@ -279,15 +322,20 @@ class WorkFlow():
                 self.pixel.push_app_back_btn()  # 自分のフォロワー画面へ移動
                 continue
 
+            # 自分のフォロワーのフォロー中へ遷移
             self.pixel._switch_to_following()
             wait()
-            new_users, is_successful = self.pixel._follow_in_following(actions - cnt)
+
+            # 一人のフォロワーからは、最大で一定件数だけフォローする
+            follow_cnt_in_this_user = min(15, actions - cnt)
+            new_users, is_ok = self.pixel._follow_in_following(follow_cnt_in_this_user, switch_rate)
             cnt += len(new_users)
             wait()
 
             # 画面を元に戻す
             self.pixel.back_to_profile_home()
             self.pixel._switch_to_followers()
+
             # self.pixel.push_app_back_btn()  # フォロワーのプロフTOPへ移動
             # wait()
             # self.pixel.push_app_back_btn()  # 自分のフォロワー画面へ移動

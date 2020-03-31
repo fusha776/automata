@@ -1,9 +1,11 @@
 import re
+from random import random
 from time import sleep
 from selenium.webdriver.common.by import By
 from appium.webdriver.common.mobileby import MobileBy
 # from automata.common.settings import wait
 from automata.common.settings import FOLLOWER_UPPER_LIMIT
+from automata.common.exception import ActionBlockException
 
 
 class Profile():
@@ -36,32 +38,52 @@ class Profile():
         if (not allow_to_follow_private) and self._check_private():
             return False, True
 
-        el = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="フォローする"]', sec=sec)
-        if el:
-            el[0].click()
-            return True, True
+        res = (False, False)
+        btn_is_found = False
+        if not btn_is_found:
+            el = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="フォローする"]', sec=sec)
+            if el:
+                el[0].click()
+                btn_is_found = True
+                res = (True, True)
 
-        if allow_to_follow_back:
+        if (not btn_is_found) and allow_to_follow_back:
             el = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="フォローバックする"]', sec=sec)
             if el:
                 el[0].click()
-                return True, True
+                btn_is_found = True
+                res = (True, True)
 
-        el = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="フォロー中"]', sec=sec)
-        if el:
-            return False, True
-        el = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="リクエスト済み"]', sec=sec)
-        if el:
-            return False, True
+        if not btn_is_found:
+            el = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="フォロー中"]', sec=sec)
+            if len(el) >= 2:  # following (フォロー中) で必ず1件ヒットするはず
+                btn_is_found = True
+                res = (False, True)
 
-        return False, False
+        if not btn_is_found:
+            el = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="リクエスト済み"]', sec=sec)
+            if el:
+                btn_is_found = True
+                res = (False, True)
+
+        # アクションのブロックチェックをする
+        # el = self.driver.find_elements_by_id('com.instagram.android:id/default_dialog_title')
+        # if el and ('ブロック' in el[0].text):
+        #     body = self.driver.find_elements_by_id('com.instagram.android:id/dialog_body')
+        #     print('アクションがブロックされています 検知動作: フォロー')
+        #     raise ActionBlockException(f'フォロー動作時に、ブロック表示が発生しました: {el[0].text}. {body[0].text}')
+        # else:
+        #     if len(el) >= 1:
+        #         print(el[0].text)
+
+        return res
 
     def _unfollow(self, sec=10):
         '''フォロー解除ボタンを押す
         ブロック他へファジーに対応するため、ボタンが見つからない場合はskip
 
         Condition:
-            対象ユーザのprofile画面が表示されていること
+            対象ユーザの [プロフィール]
 
         Return:
             bool: アンフォロー成功: True, アンフォロー失敗: False
@@ -81,7 +103,7 @@ class Profile():
         ブロック他へファジーに対応するため、ボタンが見つからない場合はskip
 
         Return:
-            dict[str or int]: key -> [username, name, posts, follower, following, website, bio]
+            dict[str or int or bool]: key -> [username, name, posts, follower, following, website, bio, is_following]
 
         Condition:
             対象ユーザのprofile画面が表示されていること
@@ -115,6 +137,9 @@ class Profile():
         profiles['following'] = self.driver.find_elements_by_id('com.instagram.android:id/row_profile_header_textview_following_count')
         profiles['website'] = self.driver.find_elements_by_id('com.instagram.android:id/profile_header_website')
         profiles['bio'] = bio_el
+
+        following_btn = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="フォロー中"]', sec=2)
+        profiles['is_following'] = True if len(following_btn) >= 2 else False
 
         # webElement が格納されているので、値を取り出す
         for col in profiles:
@@ -207,19 +232,21 @@ class Profile():
         ファボ返しなどで使用
 
         Return:
-            int: ファボした数
+            bool: 正常終了 -> True
 
         Condition:
-            対象ユーザのprofile画面が表示されている
+            [プロフィール]
         '''
+        res = False
         photos = self.find_elements_continually(By.XPATH, '//androidx.recyclerview.widget.RecyclerView/android.widget.ImageView', sec=10)
         if not photos:
-            return 0
+            return res
 
         photos[0].click()
-        self._push_fav()
+        if self._push_fav():
+            res = True
         self.push_app_back_btn()
-        return 1
+        return res
 
     def check_follow_back_status(self, instagram_ids):
         '''フォロー中のユーザのフォローバック状況を確認する
@@ -246,12 +273,23 @@ class Profile():
     def _switch_to_followers(self):
         '''フォロワー画面へ遷移する
 
+        Returns:
+            bool: 正常終了 -> True
+
         Conditions:
             [プロフィールTOP] が表示されている
         '''
-        follower_btn = self.find_elements_continually(
-            By.ID, 'com.instagram.android:id/row_profile_header_followers_container')
-        follower_btn[0].click()
+        for cnt_i in range(5):
+            follower_btn = self.find_elements_continually(
+                By.ID, 'com.instagram.android:id/row_profile_header_followers_container')
+            follower_btn[0].click()
+
+            # ちゃんと移動できたかチェック
+            page_loaded = self.find_elements_continually(By.ID, 'com.instagram.android:id/follow_list_username')
+
+            if page_loaded:
+                return True
+        return False
 
     def _check_private(self):
         '''非公開設定になっているか確認する
@@ -272,9 +310,16 @@ class Profile():
         Conditions:
             [プロフィールTOP] が表示されている
         '''
-        following_btn = self.find_elements_continually(
-            By.ID, 'com.instagram.android:id/row_profile_header_following_container')
-        following_btn[0].click()
+        for cnt_i in range(5):
+            following_btn = self.find_elements_continually(
+                By.ID, 'com.instagram.android:id/row_profile_header_following_container')
+            following_btn[0].click()
+
+            # ちゃんと移動できたかチェック
+            page_loaded = self.find_elements_continually(By.ID, 'com.instagram.android:id/follow_list_username')
+            if page_loaded:
+                return True
+        return False
 
     def _each_recent_follower_ids(self, max_user_x_times=50):
         '''フォロワーのidを直近順で取得する
@@ -283,6 +328,7 @@ class Profile():
         Args:
             max_user_x_times(int): 直近のフォロワーのプロフィールへ飛ぶ回数
                 エラーでループに入らないように（フェイルセーフ）、有限回数にする
+                この値は、許容できるエラー落ちの回数とみなせる
 
         Returns:
             str[]: インスタグラムIDの配列
@@ -315,7 +361,7 @@ class Profile():
         print(f'each が条件抜け cnt:{cnt}, followes_cnt:{max_user_x_times}')
         return
 
-    def _follow_in_following(self, actions=50):
+    def _follow_in_following(self, actions=50, switch_rate=0.8):
         '''フォロー中画面に表示されているユーザをフォローする
         フォローできれば問答無用でフォローする
 
@@ -326,9 +372,11 @@ class Profile():
 
         Args:
             actions(int): フォローを押す回数
+            switch_rate (float): フォローの代わりにfavする確率
+
 
         Returns:
-            (str[], bool): フォローしたユーザ, 正常終了: True
+            (int, int, bool): フォローした数, favした回数,  正常終了: True
 
         Conditions:
             [プロフィール] - [フォロー中]
@@ -339,41 +387,79 @@ class Profile():
             Args:
                 profiles (dict): _fetch_profile() の出力結果相当のdict
             '''
-            # profsの取得に失敗した場合はFalse
+            # profsの取得に失敗した場合はFalse。0件の場合も弾かれるけどOK
             followers = profs['follower']
             followings = profs['following']
             if not (followers and followings):
                 return False
 
-            # 法人相当： 所定値よりフォロワー数が多い
             is_valid = True
+            # 既にフォロー済。取得失敗も弾かれるけどOK
+            if profs['is_following']:
+                return False
+
+            # 法人相当： 所定値よりフォロワー数が多い
             if followers >= FOLLOWER_UPPER_LIMIT:
                 is_valid = False
 
-            # 法人相当： フォロワー / フォロー数 > 2
-            if (followers / (followings + 1)) > 2:
+            # 法人相当： フォロワー / フォロー数 > 1.5
+            if (followers / (followings + 1)) > 1.5:
                 is_valid = False
             return is_valid
 
-        cnt = 0
-        followed_users = []
+        def try_to_follow(self, insta_id):
+            '''フォローを試す
+
+            Returns:
+                bool, bool: フォロー成功 -> True, 正常終了 -> True
+            '''
+            has_followed, is_ok = self._follow(sec=1)
+            if not is_ok:
+                print(f'緊急退避: フォロー失敗: {insta_id}')
+
+            if has_followed:
+                print(f'followed: {insta_id}')
+                # ステータスを更新
+                self.dao.add_following(insta_id, has_followed=1, is_follower=0)
+                # アクション回数を更新
+                self.dao.increase_action_count({'follow': 1})
+            return has_followed, is_ok
+
+        def try_to_fav(self):
+            '''ファボを試す
+
+            Returns:
+                bool: 正常終了 -> True
+            '''
+
+            is_ok = self._fav_latest_photo()
+            if is_ok:
+                # アクション回数を更新
+                self.dao.increase_action_count({'fav': 1})
+            return is_ok
+
+        followed_cnt = 0
+        fav_cnt = 0
         checked = set()
         checked.add(self.login_id)
         not_found_cnt = 0
-        while cnt < actions:
+        while (followed_cnt + fav_cnt) < actions:
             # `フォロー中` をタッチしてプロフへ行かない機能必須だわ、これの有無で実行時間がだいぶ変わる
 
             # 未チェックのユーザを探す
             users = self.find_elements_continually(By.ID, 'com.instagram.android:id/follow_list_username', sec=1)
+
+            # ユーザリストが繰り返し取得不可なら失敗で返却
             if users is None:
                 print('users list not found')
                 self.slide_to_next()
                 not_found_cnt += 1
                 if not_found_cnt > 3:
                     print('緊急退避: ユーザリストが見つからない')
-                    return followed_users, False
+                    return followed_cnt, fav_cnt, False
                 continue
 
+            # 未チェックのユーザが入れば続行、いなければワイプスクロールして再探索
             target = None
             for u_el in users:
                 if u_el.text not in checked:
@@ -383,7 +469,6 @@ class Profile():
             if target is None:
                 self.slide_to_next()
                 continue
-
             insta_id = target.text
             target.click()
 
@@ -393,27 +478,25 @@ class Profile():
                 self.push_app_back_btn()
                 continue
 
-            # フォローをトライする
-            has_followed, is_successful = self._follow(sec=1)
-            if not is_successful:
-                print(f'緊急退避: フォロー失敗: {insta_id}')
-                return followed_users, False
-
-            if has_followed:
-                followed_users.append(insta_id)
-                print(f'followed: {insta_id}')
-
-                # ステータスを更新
-                self.dao.add_following(insta_id, has_followed=1, is_follower=0)
-                # アクション回数を更新
-                self.dao.increase_action_count({'follow': 1})
-                cnt += 1
+            # 同一アクションの連続はブロックの危険があがるので、ランダムでアクションを変える
+            if random() < switch_rate:
+                # ファボをトライする
+                is_ok = self._fav_latest_photo()
+                if is_ok:
+                    fav_cnt += 1
             else:
-                pass  # フォロー中のケース
+                # フォローをトライする
+                has_followed, is_ok = try_to_follow(self, insta_id)
+                if has_followed:
+                    followed_cnt += 1
+
+            # 処理失敗したら失敗を返却
+            if not is_ok:
+                return followed_cnt, fav_cnt, False
 
             self.push_app_back_btn()
-        print('最後まできてreturn')
-        return followed_users, True
+        print('フォロワーのフォロー中探索が一周完了')
+        return followed_cnt, fav_cnt, True
 
     def switch_login_id(self, new_id):
         '''指定されたユーザへスイッチする
@@ -423,11 +506,9 @@ class Profile():
             new_id(str): スイッチ先のインスタグラムID
         '''
         self.back_to_profile_home()
-        # opt_btn = self.find_elements_continually(MobileBy.ACCESSIBILITY_ID, 'オプション')
         opt_btn = self.find_elements_continually(By.ID, 'com.instagram.android:id/title_view')
         opt_btn[0].click()
-        # settings_btn = self.find_elements_continually(By.ID, 'com.instagram.android:id/menu_settings_row')
-        # settings_btn[0].click()
+        sleep(2)  # モーダルの表示を待つ
         switch_btn = self.find_elements_by_text_continually(new_id)
         switch_btn[0].click()
 
@@ -451,3 +532,41 @@ class Profile():
 
         self.push_app_back_btn()
         return is_successful
+
+    def _unfollow_if_no_followback(self, insta_id):
+        '''フォロバを確認し、フォロバがなければアンフォローする
+
+        Args:
+            insta_id (str): 対象ユーザのインスタグラムID
+
+        Returns:
+            (bool, bool): (フォローを解除した -> True, 正常終了 -> True)
+
+        Conditions:
+            [プロフィール]
+        '''
+        self._switch_to_following()
+        not_found_cnt = 0
+        users = self.find_elements_continually(By.ID, 'com.instagram.android:id/follow_list_username', sec=1)
+
+        if users is None:
+            print('users list not found')
+            self.slide_to_next()
+            not_found_cnt += 1
+            if not_found_cnt > 3:
+                print('緊急退避: ユーザリストが見つからない')
+                return False, False
+
+            # フォロバ有りの場合はそのまま返却
+            if users[0].text == self.login_id:
+                self.push_app_back_btn()
+                return False, True
+
+            # フォロバが無い場合はアンフォロー
+            self.push_app_back_btn()
+            if self._unfollow():
+                self.dao.update_following(insta_id, has_followed=0, is_follower=0)
+                self.pixel.dao.increase_action_count({'unfollow': 1})
+                return True, True
+            else:
+                return False, False

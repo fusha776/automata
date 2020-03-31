@@ -1,4 +1,5 @@
 from automata.workflow.workflow import WorkFlow
+from automata.common.exception import ActionBlockException
 
 
 def run(worker_id, actions):
@@ -14,7 +15,9 @@ def run(worker_id, actions):
 
         # 一定期間を超えたユーザをアンフォロー
 #        wf.unfollow_expires_users(2)
-
+    except ActionBlockException as e:
+        print(e)
+        print(f'login_id: {wf.pixel.login_id} # アクションがブロックされたため終了')
     finally:
         # with open('./page_source.log', 'w', encoding='utf8') as f:
         #     f.write(wf.pixel.driver.page_source)
