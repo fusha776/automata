@@ -2,7 +2,7 @@ from automata.workflow.workflow import WorkFlow
 from automata.common.exception import ActionBlockException
 
 
-def run(worker_id, actions):
+def run(worker_id, actions, switch_rate=0.8):
 
     try:
         wf = WorkFlow(worker_id=worker_id)
@@ -11,7 +11,7 @@ def run(worker_id, actions):
         wf.pixel.switch_login_id(wf.pixel.login_id)
 
         # フォロワーのフォロワーをフォロー
-        wf.follow_followers_friends(actions)
+        wf.follow_followers_friends(actions, switch_rate)
 
         # 一定期間を超えたユーザをアンフォロー
 #        wf.unfollow_expires_users(2)

@@ -328,8 +328,8 @@ class WorkFlow():
 
             # 一人のフォロワーからは、最大で一定件数だけフォローする
             follow_cnt_in_this_user = min(15, actions - cnt)
-            new_users, is_ok = self.pixel._follow_in_following(follow_cnt_in_this_user, switch_rate)
-            cnt += len(new_users)
+            followed_cnt, fav_cnt, is_ok = self.pixel._follow_in_following(follow_cnt_in_this_user, switch_rate)
+            cnt += (followed_cnt + fav_cnt)
             wait()
 
             # 画面を元に戻す

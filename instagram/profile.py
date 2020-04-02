@@ -1,11 +1,10 @@
 import re
-from random import random
+from random import random, shuffle
 from time import sleep
 from selenium.webdriver.common.by import By
-from appium.webdriver.common.mobileby import MobileBy
 # from automata.common.settings import wait
 from automata.common.settings import FOLLOWER_UPPER_LIMIT
-from automata.common.exception import ActionBlockException
+# from automata.common.exception import ActionBlockException
 
 
 class Profile():
@@ -36,6 +35,7 @@ class Profile():
         '''
         # プライベート設定アカウントを弾く
         if (not allow_to_follow_private) and self._check_private():
+            print('private設定のため skip')
             return False, True
 
         res = (False, False)
@@ -137,16 +137,24 @@ class Profile():
         profiles['following'] = self.driver.find_elements_by_id('com.instagram.android:id/row_profile_header_textview_following_count')
         profiles['website'] = self.driver.find_elements_by_id('com.instagram.android:id/profile_header_website')
         profiles['bio'] = bio_el
-
-        following_btn = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="フォロー中"]', sec=2)
-        profiles['is_following'] = True if len(following_btn) >= 2 else False
-
         # webElement が格納されているので、値を取り出す
         for col in profiles:
             if profiles[col]:
                 profiles[col] = profiles[col][0].text
             else:
                 profiles[col] = None
+
+        # フォロー中フラグを取得
+        following_btn = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="フォロー中"]', sec=3)
+        profiles['is_following'] = False
+        if following_btn and len(following_btn) >= 2:
+            profiles['is_following'] = True
+
+        # フォローバック（フォローされている）フラグを取得
+        followed_btn = self.find_elements_continually(By.XPATH, '//android.widget.TextView[@text="フォローバックする"]', sec=3)
+        profiles['is_only_followed'] = False
+        if followed_btn:
+            profiles['is_only_followed'] = True
 
         # 数値へ変換
         profiles['posts'] = to_num(profiles['posts'])
@@ -232,21 +240,25 @@ class Profile():
         ファボ返しなどで使用
 
         Return:
-            bool: 正常終了 -> True
+            (bool, bool): 新規ファボ -> True, 正常終了 -> True
 
         Condition:
             [プロフィール]
         '''
-        res = False
-        photos = self.find_elements_continually(By.XPATH, '//androidx.recyclerview.widget.RecyclerView/android.widget.ImageView', sec=10)
+        photos = self.find_elements_continually(
+            By.XPATH, '//androidx.recyclerview.widget.RecyclerView/android.widget.LinearLayout/android.widget.ImageView', sec=10)
         if not photos:
-            return res
+            print('投稿写真が見つかりませんでした')
+            return False, False
 
+        # ファボ済だったらやめる（他の写真を選択しようとすると、elementの取り直しになり面倒）
+        shuffle(photos)
         photos[0].click()
-        if self._push_fav():
-            res = True
+        has_fav, is_ok = self._push_fav()
         self.push_app_back_btn()
-        return res
+        if has_fav:
+            return True, True
+        return False, True
 
     def check_follow_back_status(self, instagram_ids):
         '''フォロー中のユーザのフォローバック状況を確認する
@@ -298,8 +310,9 @@ class Profile():
         Conditions:
             [プロフィールTOP] が表示されている
         '''
-        private_btn = self.driver.find_elements_by_id('com.instagram.android:id/row_profile_header_empty_profile_notice_title')
-        if private_btn:
+        private_btn_jpn = self.driver.find_elements_by_id('com.instagram.android:id/row_profile_header_empty_profile_notice_title')
+        private_btn_en = self.driver.find_elements_by_id('com.instagram.android:id/com.instagram.android:id/empty_state_view_title')
+        if private_btn_jpn or private_btn_en:
             return True
         else:
             return False
@@ -394,8 +407,8 @@ class Profile():
                 return False
 
             is_valid = True
-            # 既にフォロー済。取得失敗も弾かれるけどOK
-            if profs['is_following']:
+            # 既にフォロー済 or フォローされているだけ。取得失敗も弾かれるけどOK
+            if profs['is_following'] or profs['is_only_followed']:
                 return False
 
             # 法人相当： 所定値よりフォロワー数が多い
@@ -432,8 +445,9 @@ class Profile():
                 bool: 正常終了 -> True
             '''
 
-            is_ok = self._fav_latest_photo()
-            if is_ok:
+            has_fav, is_ok = self._fav_latest_photo()
+            print(f'has fav: {has_fav}')
+            if has_fav:
                 # アクション回数を更新
                 self.dao.increase_action_count({'fav': 1})
             return is_ok
@@ -481,17 +495,19 @@ class Profile():
             # 同一アクションの連続はブロックの危険があがるので、ランダムでアクションを変える
             if random() < switch_rate:
                 # ファボをトライする
-                is_ok = self._fav_latest_photo()
+                is_ok = try_to_fav(self)
                 if is_ok:
                     fav_cnt += 1
             else:
                 # フォローをトライする
+                print('follow in')
                 has_followed, is_ok = try_to_follow(self, insta_id)
                 if has_followed:
                     followed_cnt += 1
 
             # 処理失敗したら失敗を返却
             if not is_ok:
+                print('アクションのトライに失敗')
                 return followed_cnt, fav_cnt, False
 
             self.push_app_back_btn()

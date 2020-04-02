@@ -11,6 +11,7 @@ https://www.photock.jp/
 
 #### Emulator の起動
 <%AppData%>\Local\Android\Sdk\emulator\emulator @automata_pixel3
+c:/Users/****/AppData/Local/Android/Sdk/emulator/emulator @automata_nine_japan_a
 <略>/Sdk\tools\emulator だと、pathの参照順が異なり？エラー落ちするので、こっちをkickする
 ["Missing emulator engine program for 'x86' CPU"が発生する場合の対処法](https://www.taneyats.com/entry/android_emulator_command_error)
 

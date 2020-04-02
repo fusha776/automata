@@ -156,16 +156,20 @@ class Search():
         '''投稿をファボする
 
         Returns:
-            bool: 正常終了 -> True
+            (bool, bool): ファボ成功 -> True | 既にファボ済 -> False, 正常終了 -> True
 
         Condition:
             投稿一覧画面（フルサイズ）を表示
         '''
         btn = self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_button_like')
         if not btn:
-            return False
+            return False, False
+
+        # ファボ済チェック
+        if '済' in btn.tag_name:
+            return False, True
         btn.click()
-        return True
+        return True, True
 
     def _select_keyword_in_suggestions(self, keyword):
         '''検索候補の中から、ルールベースで1つ選んで検索をかける。
