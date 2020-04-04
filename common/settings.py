@@ -35,9 +35,3 @@ FLLOWING_ALIVE_DAYS = 5
 
 # NGユーザをあらかじめキャッシュする数
 NG_USER_SIZE = 5000
-
-
-def wait():
-    '''連続操作でBANされないように、一定時間waitする
-    '''
-    sleep(2 + 3 * random())

@@ -41,21 +41,21 @@ class InstagramPixel(DriverEx, Search, Post, Avtivity, Profile):
 
         # DBからコンフィグを取得
         q_res = self.dao.fetch_worker_settings()
-        self.login_id = q_res[0]
-        self.worker_group = q_res[1]
-        self.worker_group_lake_path = q_res[2]
-        self.dm_message_id = q_res[3]
-        self.hashtag_group = q_res[4]
-        self.post_per_day = q_res[5]
-        self.dm_per_day = q_res[6]
-        self.fav_per_day = q_res[7]
-        self.follow_per_day = q_res[8]
-        self.unfollow_per_day = q_res[9]
-        self.post_per_boot = q_res[10]
-        self.dm_per_boot = q_res[11]
-        self.fav_per_boot = q_res[12]
-        self.follow_per_boot = q_res[13]
-        self.unfollow_per_boot = q_res[14]
+        self.login_id = q_res['login_id']
+        self.worker_group = q_res['worker_group']
+        self.worker_group_lake_path = q_res['worker_group_lake_path']
+        self.dm_message_id = q_res['dm_message_id']
+        self.hashtag_group = q_res['hashtag_group']
+        self.post_per_day = q_res['post_per_day']
+        self.dm_per_day = q_res['dm_per_day']
+        self.fav_per_day = q_res['fav_per_day']
+        self.follow_per_day = q_res['follow_per_day']
+        self.unfollow_per_day = q_res['unfollow_per_day']
+        self.post_per_boot = q_res['post_per_boot']
+        self.dm_per_boot = q_res['dm_per_boot']
+        self.fav_per_boot = q_res['fav_per_boot']
+        self.follow_per_boot = q_res['follow_per_boot']
+        self.unfollow_per_boot = q_res['unfollow_per_boot']
 
         q_res = self.dao.fetch_ng_users()
         self.ng_users = set(q_res)
@@ -115,6 +115,11 @@ class InstagramPixel(DriverEx, Search, Post, Avtivity, Profile):
             return True
         return False
 
+    def push_device_back_btn(self):
+        '''android のデバイスキーで戻る
+        '''
+        self.driver.keyevent(AndroidKey.BACK)
+
     def push_forced_back_btn(self):
         '''何らかの手段で前に戻ろうとする
         まず画面のボタンから戻ろうとし（安定性が高い）、できなければ android key で前に戻る
@@ -122,7 +127,7 @@ class InstagramPixel(DriverEx, Search, Post, Avtivity, Profile):
         if self.push_app_back_btn():
             return
         else:
-            self.driver.keyevent(AndroidKey.BACK)
+            self.push_device_back_btn()
 
     def launch_instagram(self):
         # ホームからinstagramを起動

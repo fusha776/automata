@@ -95,7 +95,7 @@ class Avtivity():
                     continue
                 username_btns[idx].click()
                 is_ng = self._check_ng()
-                self.push_app_back_btn()
+                self.push_device_back_btn()
                 if is_ng:
                     additional_ng.add(username)
                     continue
@@ -140,7 +140,7 @@ class Avtivity():
                     continue
                 username_btns[idx].click()
                 is_ng = self._check_ng()
-                self.push_app_back_btn()
+                self.push_device_back_btn()
                 if is_ng:
                     additional_ng.add(username)
                     continue
@@ -179,7 +179,7 @@ class Avtivity():
             for btn in btns:
                 btn.click()
                 fav_cnt = self._fav_latest_photo()
-                self.push_app_back_btn()
+                self.push_device_back_btn()
                 followed_users += fav_cnt
             self.slide_to_next()
         return followed_users

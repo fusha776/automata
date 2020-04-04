@@ -49,6 +49,7 @@ class Model():
             worker_id TEXT PRIMARY KEY,
             description TEXT,
             login_id TEXT,
+            label TEXT,
             password TEXT,
             client TEXT,
             worker_group TEXT,
@@ -88,6 +89,14 @@ class Model():
             PRIMARY KEY (worker_group, instagram_id)
         )'''
 
+        worker_status = '''
+            CREATE TABLE IF NOT EXISTS worker_status (
+            worker_id TEXT,
+            last_booted_at TIMESTAMP,
+            today_booted_times INTEGER,
+            PRIMARY KEY (worker_id)
+        )'''
+
         with self.conn:
             self.conn.execute(dm_histories)
             self.conn.execute(dm_messages_mst)
@@ -96,25 +105,25 @@ class Model():
             self.conn.execute(worker_settings)
             self.conn.execute(action_counters)
             self.conn.execute(ng_users)
+            self.conn.execute(worker_status)
 
     def migrate(self):
         '''マスタ他のレコードを、実行するたびに洗い替えする
         '''
 
         worker_settings = '''INSERT OR REPLACE INTO worker_settings (
-                                 worker_id, description, login_id, password, client, worker_group,
+                                 worker_id, description, login_id, label, password, client, worker_group,
                                  worker_group_lake_path, dm_message_id, hashtag_group,
                                  post_per_day, dm_per_day, fav_per_day, follow_per_day, unfollow_per_day,
                                  post_per_boot, dm_per_boot, fav_per_boot, follow_per_boot, unfollow_per_boot)
-                             VALUES(?, ?, ?, ?, ?, ?,
+                             VALUES(?, ?, ?, ?, ?, ?, ?,
                                     ?, ?, ?, ?, ?, ?,
                                     ?, ?, ?, ?, ?, ?, ?)
         '''
-        workers = [('arc_corp_1', 'DM送信 No.1（アークコーポレーション）', 'poyomaru555', 'itsumono', '動作テスト用', 'dm_arc',
+        workers = [('arc_corp_1', 'DM送信 No.1（アークコーポレーション）', 'poyomaru555', 'ぽよまる', 'itsumono', '動作テスト用', 'dm_arc',
                     f'{LAKE_ROOT_PATH}\\dm_arc', 'apparel_arc', None,
                     2, 20, None, None, None,
-                    1, 10, None, None, None)
-                   ]
+                    1, 10, None, None, None)]
 
         with self.conn:
             self.conn.executemany(worker_settings, workers)

@@ -2,7 +2,7 @@ from automata.workflow.workflow import WorkFlow
 from automata.common.exception import ActionBlockException
 
 
-def run(worker_id, actions, switch_rate=0.8):
+def run(worker_id, actions_ff, actions_unfollow, switch_rate=0.8):
 
     try:
         wf = WorkFlow(worker_id=worker_id)
@@ -10,11 +10,11 @@ def run(worker_id, actions, switch_rate=0.8):
         wf.pixel.switch_to_instagram_home()
         wf.pixel.switch_login_id(wf.pixel.login_id)
 
-        # フォロワーのフォロワーをフォロー
-        wf.follow_followers_friends(actions, switch_rate)
+        # フォロワーのフォロワーに対して、フォロー or fav
+        wf.follow_followers_friends(actions_ff, switch_rate)
 
         # 一定期間を超えたユーザをアンフォロー
-#        wf.unfollow_expires_users(2)
+        wf.unfollow_expires_users(actions_unfollow)
     except ActionBlockException as e:
         print(e)
         print(f'login_id: {wf.pixel.login_id} # アクションがブロックされたため終了')

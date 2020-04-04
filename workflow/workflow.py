@@ -2,11 +2,9 @@ import os
 from datetime import datetime, timedelta
 from glob import glob
 from random import random
-from time import sleep
 import chardet
 from automata.instagram.instagram import InstagramPixel
 from automata.common.settings import KEEPING_DAYS, FLLOWING_ALIVE_DAYS
-from automata.common.settings import wait
 
 
 class WorkFlow():
@@ -100,10 +98,8 @@ class WorkFlow():
                 continue
 
             img.click()
-            sleep(2 + 3 * random())
             self.pixel._push_fav()
-            sleep(3 + 5 * random())
-            self.pixel.push_app_back_btn()
+            self.pixel.push_device_back_btn()
             fav_cnt += 1
         # DB更新
         self.pixel.dao.increase_action_count({'fav': fav_cnt})
@@ -124,15 +120,11 @@ class WorkFlow():
                 continue
 
             img.click()
-            sleep(2 + 3 * random())
             self.pixel._go_to_profile()
-            sleep(4 + 3 * random())
             has_successed = self.pixel._follow()
             profiles = self.pixel._fetch_profile()
-            sleep(3 + 5 * random())
-            self.pixel.push_app_back_btn()
-            sleep(1 + 1 * random())
-            self.pixel.push_app_back_btn()
+            self.pixel.push_device_back_btn()
+            self.pixel.push_device_back_btn()
             if has_successed:
                 following_cnt += 1
                 self.pixel.dao.add_following(profiles['username'])
@@ -156,7 +148,7 @@ class WorkFlow():
 
         followings[0].click()  # 複数見つかっても、1つ巡回すれば事足りる
         following_cnt, additional_ng = self.pixel._follow_users_in_just_following(n_users, slide_n_times)
-        self.pixel.push_app_back_btn()
+        self.pixel.push_device_back_btn()
         # アクション回数を更新
         self.pixel.dao.increase_action_count({'follow': following_cnt})
         # NGユーザを追加
@@ -177,7 +169,7 @@ class WorkFlow():
 
         favs[0].click()  # 複数見つかっても、1つ巡回すれば事足りる
         following_cnt = self.pixel._follow_users_in_just_fav(n_users, slide_n_times)
-        self.pixel.push_app_back_btn()
+        self.pixel.push_device_back_btn()
         # アクション回数を更新
         self.pixel.dao.increase_action_count({'follow': following_cnt})
 
@@ -241,19 +233,12 @@ class WorkFlow():
 
         users_to_unfollow = fetch_users_to_unfollow(self)
         unfollow_cnt = 0
-        unfollowed_ids = []
         for id_i in users_to_unfollow:
             if unfollow_cnt >= actions:
                 break
-            is_successful = self.pixel.unfollow_by_id(id_i)
-            if is_successful:
-                unfollowed_ids.append(id_i)
+            is_ok = self.pixel.unfollow_by_id(id_i)
+            if is_ok:
                 unfollow_cnt += 1
-
-        # アクション回数を更新
-        for id_i in unfollowed_ids:
-            self.pixel.dao.save_unfollow(id_i)
-        self.pixel.dao.increase_action_count({'unfollow': unfollow_cnt})
 
     def unfollow_no_followbacks(self, actions, max_user_x_times=300):
         '''フォロバ無しのアカウントを、フォロワー一覧の表示順で外していく
@@ -277,12 +262,11 @@ class WorkFlow():
 
             # 自分のフォロワーのフォロー中へ遷移
             my_follower.click()
-            wait()
 
             # フォロバ無しをフォロ解除する
             _, is_successful = self.pixel._unfollow_if_no_followback(my_follower.text)
 
-            self.push_app_back_btn()
+            self.push_device_back_btn()
 
     def follow_followers_friends(self, actions, switch_rate=0.8):
         '''自分のフォロワーがフォロー中のユーザをフォローする（ややこしい）
@@ -315,34 +299,20 @@ class WorkFlow():
                 print(f'break in cnt:{cnt} > actions:{actions}')
                 break
             my_follower.click()
-            wait()
 
             # 非公開ユーザなら飛ばす
             if self.pixel._check_private():
-                self.pixel.push_app_back_btn()  # 自分のフォロワー画面へ移動
+                self.pixel.push_device_back_btn()  # 自分のフォロワー画面へ移動
                 continue
 
             # 自分のフォロワーのフォロー中へ遷移
             self.pixel._switch_to_following()
-            wait()
 
             # 一人のフォロワーからは、最大で一定件数だけフォローする
             follow_cnt_in_this_user = min(15, actions - cnt)
             followed_cnt, fav_cnt, is_ok = self.pixel._follow_in_following(follow_cnt_in_this_user, switch_rate)
             cnt += (followed_cnt + fav_cnt)
-            wait()
 
             # 画面を元に戻す
             self.pixel.back_to_profile_home()
             self.pixel._switch_to_followers()
-
-            # self.pixel.push_app_back_btn()  # フォロワーのプロフTOPへ移動
-            # wait()
-            # self.pixel.push_app_back_btn()  # 自分のフォロワー画面へ移動
-
-        # # テーブルを更新
-        # for id_i in followed_users:
-        #     self.pixel.dao.add_following(id_i, has_followed=1, is_follower=0)
-
-        # # アクション回数を更新
-        # self.pixel.dao.increase_action_count({'follow': cnt})

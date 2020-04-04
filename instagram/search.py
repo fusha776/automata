@@ -52,7 +52,6 @@ class Search():
         # names = []
         # for img in self._img_each(5, 1):
         #     img.click()
-        #     sleep(1 + 3 * random())
         #     names.append(self.find_element_continually(By.ID, 'com.instagram.android:id/row_feed_photo_profile_name').text.split(' ')[0])
         #     self.find_element_continually(By.ID, 'com.instagram.android:id/action_bar_button_back').click()
         # print(names)

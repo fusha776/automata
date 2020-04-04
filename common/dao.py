@@ -105,6 +105,18 @@ class Dao():
                                      instagram_id = ?
                               ''', (now_timestamp, self.worker_id, insta_id))
 
+    def delete_following(self, insta_id):
+        '''フォロー状況から該当ユーザを削除する
+        '''
+        with self.conn:
+            self.conn.execute('''
+                DELETE FROM
+                    following_status
+                WHERE
+                    worker_id = ? and
+                    instagram_id = ?
+            ''', (self.worker_id, insta_id))
+
     def fetch_following_only(self):
         '''フォローのみ状態のユーザを抽出する
 
@@ -180,10 +192,42 @@ class Dao():
                                 FROM
                                     following_status
                                 WHERE
-                                    has_followed = 1
+                                    has_followed = 1 and
+                                    worker_id = ?
                                 ORDER BY
                                     updated_at ASC
                                 LIMIT
-                                    1000
-                            ''')
+                                    200
+                            ''', (self.worker_id,))
+        return self.cursor.fetchall()
+
+    def load_daily_action_results(self, worker_group, target_day):
+        '''指定日のアクション結果を取得する
+
+        Args:
+            target_day (str; yyyymmdd): アクション結果を取得する日付
+        '''
+        self.cursor.execute('''
+            WITH valid_actions as (
+                SELECT
+                    worker_id, post, dm, fav, follow,
+                    unfollow, others, summary_cnt
+                FROM
+                    action_counters
+                WHERE
+                    operated_on = ?
+            )
+
+            SELECT
+                t1.login_id,
+                t1.label, t1.client, t1.worker_group,
+                t2.post, t2.dm, t2.fav, t2.follow,
+                t2.unfollow, t2.others, t2.summary_cnt
+            FROM
+                worker_settings t1 LEFT JOIN
+                valid_actions t2 ON
+                    t1.worker_id = t2.worker_id
+            WHERE
+                t1.worker_group = ?
+        ''', (target_day, worker_group))
         return self.cursor.fetchall()
