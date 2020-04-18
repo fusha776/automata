@@ -1,0 +1,110 @@
+import os
+import pathlib
+from datetime import datetime
+from logging import getLogger, StreamHandler, FileHandler, Formatter, DEBUG
+from selenium import webdriver
+from automata.dao import Dao
+from automata.common.settings import CHROMEDRIVER_PATH, WAIT_SECONDS
+from automata.common.utils import backup_ajax
+from automata.adoptor.web import Web
+from automata.adoptor.profile import Profile
+from automata.adoptor.post import Post
+from automata.adoptor.modal import Modal
+
+
+class Abilities():
+    '''各画面制御のコア機能を統括するMediator相当のクラス
+    '''
+
+    def __init__(self, worker_id):
+        # worker id をセット
+        self.worker_id = worker_id
+
+        # 実行日を取得
+        self.today = datetime.now().strftime('%Y%m%d')
+
+        # loggerを取得
+        self.logger = self.create_logger()
+        self.logger.debug('LOADING - BOOTING SYSTEM...')
+
+        # DBセッションを取得
+        self.dao = Dao(self.worker_id, self.today)
+
+        # worker のコンフィグを取得
+        self.worker_conf = WorkerConfigs(self.dao)
+        self.login_id = self.worker_conf.login_id  # 良く使うのでショートカットを用意
+
+        # webdriver を取得
+        self.driver = self.create_driver()
+
+        # 各画面制御の移譲クラスを取得
+        self.web = Web(self)
+        self.profile = Profile(self)
+        self.post = Post(self)
+        self.modal = Modal(self)
+
+        self.logger.debug(f'AUTOMATA is activated. - worker id:{self.worker_id}, login id: {self.login_id}')
+
+    def create_driver(self):
+        options = webdriver.ChromeOptions()
+        options.add_argument(f'--user-data-dir={self.worker_conf.browser_data_dir}')  # 同一のデータディレクトリは複数ブラウザで参照できない点に注意
+        options.add_argument(f'--profile-directory={self.worker_conf.profile_dir}')  # 省略するとDefaultフォルダが指定される
+        options.add_experimental_option('mobileEmulation', {'deviceName': self.worker_conf.device_name})
+        driver = webdriver.Chrome(executable_path=CHROMEDRIVER_PATH, options=options)
+        driver.implicitly_wait(WAIT_SECONDS)  # find_element等の最大待ち時間
+
+        # 途中でajaxをバイパス制御するため、xhrのバックアップ実行（ブラウザ側で保管）
+        backup_ajax(driver)
+        return driver
+
+    def create_logger(self):
+        '''ロガーを生成
+        '''
+        dst_dir = f'./log/{self.worker_id}'
+        dst_path = f'{dst_dir}/replay_{self.today}.log'
+        pathlib.Path(dst_dir).mkdir(parents=True, exist_ok=True)
+        if not os.path.exists(dst_path):
+            pathlib.Path(dst_path).touch()
+
+        fmt = "%(asctime)s %(levelname)s [%(name)s] :%(message)s"
+        handler = StreamHandler()
+        handler.setFormatter(Formatter(fmt))
+        handler.setLevel(DEBUG)
+        file_handler = FileHandler(dst_path, mode='a', encoding='utf-8')
+        file_handler.setFormatter(Formatter(fmt))
+        file_handler.setLevel(DEBUG)
+
+        logger = getLogger(__name__)
+        logger.setLevel(DEBUG)
+        logger.addHandler(handler)
+        logger.addHandler(file_handler)
+        logger.propagate = False
+        return logger
+
+
+class WorkerConfigs():
+    '''DBへ保存されているworkerのコンフィグを管理
+    '''
+
+    def __init__(self, dao):
+        # DBからコンフィグを取得
+        q_res = dao.fetch_worker_settings()
+        self.login_id = q_res['login_id']
+        self.password = q_res['password']
+        self.worker_group = q_res['worker_group']
+        self.browser_data_dir = q_res['browser_data_dir']
+        self.profile_dir = q_res['profile_dir']
+        self.device_name = q_res['device_name']
+        self.worker_group_lake_path = q_res['worker_group_lake_path']
+        self.dm_message_id = q_res['dm_message_id']
+        self.hashtag_group = q_res['hashtag_group']
+        self.post_per_day = q_res['post_per_day']
+        self.dm_per_day = q_res['dm_per_day']
+        self.fav_per_day = q_res['fav_per_day']
+        self.follow_per_day = q_res['follow_per_day']
+        self.unfollow_per_day = q_res['unfollow_per_day']
+        self.post_per_boot = q_res['post_per_boot']
+        self.dm_per_boot = q_res['dm_per_boot']
+        self.fav_per_boot = q_res['fav_per_boot']
+        self.follow_per_boot = q_res['follow_per_boot']
+        self.unfollow_per_boot = q_res['unfollow_per_boot']
