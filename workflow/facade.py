@@ -1,5 +1,6 @@
 from automata.apimediator.abilities import Abilities
 from automata.workflow.following import Following
+from automata.workflow.unfollowing import Unfollowing
 
 
 class Facade():
@@ -14,6 +15,7 @@ class Facade():
 
         # 各フローの移譲先を取得
         self.following = Following(self.abilities)
+        self.unfollowing = Unfollowing(self.abilities)
 
     def switch_to_instagram_home(self):
         self.abilities.web.switch_to_instagram_home()

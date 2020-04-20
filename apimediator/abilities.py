@@ -43,7 +43,7 @@ class Abilities():
         self.post = Post(self)
         self.modal = Modal(self)
 
-        self.logger.debug(f'AUTOMATA is activated. - worker id:{self.worker_id}, login id: {self.login_id}')
+        self.logger.debug(f'AUTOMATA is activated. - worker id: {self.worker_id}, login id: {self.login_id}')
 
     def create_driver(self):
         options = webdriver.ChromeOptions()
@@ -60,21 +60,31 @@ class Abilities():
     def create_logger(self):
         '''ロガーを生成
         '''
-        dst_dir = f'./log/{self.worker_id}'
-        dst_path = f'{dst_dir}/replay_{self.today}.log'
-        pathlib.Path(dst_dir).mkdir(parents=True, exist_ok=True)
-        if not os.path.exists(dst_path):
-            pathlib.Path(dst_path).touch()
+        def create_dir_and_log():
+            '''必要なディレクトリ, 当日のログファイルが無ければ生成
 
+            Returns:
+                str: 当日のログファイルのpath
+            '''
+            log_dir = f'./log/{self.worker_id}'
+            ss_dir = f'./log/{self.worker_id}/screenshots'
+            pathlib.Path(log_dir).mkdir(parents=True, exist_ok=True)
+            pathlib.Path(ss_dir).mkdir(parents=True, exist_ok=True)
+            log_path = f'{log_dir}/replay_{self.today}.log'
+            if not os.path.exists(log_path):
+                pathlib.Path(log_path).touch()
+            return log_path
+
+        log_path = create_dir_and_log()
         fmt = "%(asctime)s %(levelname)s [%(name)s] :%(message)s"
         handler = StreamHandler()
         handler.setFormatter(Formatter(fmt))
         handler.setLevel(DEBUG)
-        file_handler = FileHandler(dst_path, mode='a', encoding='utf-8')
+        file_handler = FileHandler(log_path, mode='a', encoding='utf-8')
         file_handler.setFormatter(Formatter(fmt))
         file_handler.setLevel(DEBUG)
 
-        logger = getLogger(__name__)
+        logger = getLogger(self.worker_id)
         logger.setLevel(DEBUG)
         logger.addHandler(handler)
         logger.addHandler(file_handler)

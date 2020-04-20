@@ -1,4 +1,4 @@
-from random import random, randint, shuffle
+from random import random, shuffle
 from automata.common.settings import FOLLOWER_UPPER_LIMIT
 
 
@@ -13,16 +13,31 @@ class Following():
         '''自分のフォロワーからユーザリストを生成
 
         Returns:
-            dict: key -> {'insta_id', 'follow_msg'}
+            dict[]: key -> {'insta_id', 'follow_msg'}
         '''
         self.ab.profile.switch_to_user_profile(self.ab.login_id)
         self.ab.profile.switch_to_following(self.ab.login_id)
 
-    def follow_followers_friends(self, actions, fav_rate=0.8, max_user_times=50):
-        '''自分のフォロワーがフォロー中のユーザをフォローする（ややこしい）
+        # ユーザセットを取得する
+        raw_userlists = self.ab.profile.get_user_parts()
+
+        # 必要なカラムに絞る
+        userlists = []
+        for u in raw_userlists:
+            dict_i = {'insta_id': u['insta_id'], 'follow_msg': u['follow_msg']}
+            userlists.append(dict_i)
+
+        # 上の方は何回も呼ばれるため、順番をシャッフルして返却
+        shuffle(userlists)
+        return userlists
+
+    def follow_friends_neighbors(self, actions, my_friends=None, fav_rate=0.7, max_user_times=50):
+        '''指定ユーザの フォロワー or フォロー中 をフォローする（ややこしい）
+        指定 (my_friends) がなければ、自分のフォロー中から選択
 
         Args:
             actions (int): 実行する action の回数
+            my_friends (dict[]): フォロー中を探索してアクション対象を見つける元ユーザのリスト
             fav_rate (float): フォローの代わりにfavする確率
             max_user_times (int): 自分のフォロワーを探索する最大回数（エラーループ防止）
 
@@ -37,46 +52,49 @@ class Following():
             これ以上（Bot予測モデルとか異常検知とか）されてると、結構きつくなるかも
             イタチごっこしてやる
         '''
+        self.ab.logger.debug('start operation: 対象ユーザの近隣を follow or fav')
+        # 不要だけど、自然な動きに見せるため正しく遷移しておく
         self.ab.profile.switch_to_user_profile(self.ab.login_id)
         self.ab.profile.switch_to_following(self.ab.login_id)
 
         # automataがフォローしたリストを検索対象から除外する
         skipped = self.ab.dao.fetch_valid_followings()
         skipped = set([i['instagram_id'] for i in skipped])
+        checked = set([self.ab.login_id])
+        checked.update(skipped)
 
-        # ユーザセットを取得する
-        users_dataset = self.ab.profile.get_user_parts()
-
-        # 上の方は何回も呼ばれるから、乱数ベースで下の方へずらす（その場しのぎ）
-        skipping_cnt = randint(50, 200)
-        users_dataset = users_dataset[(-1) * skipping_cnt:]
-        users_dataset = users_dataset[:max_user_times]
+        # 渡されなかったらユーザリストを取得
+        if not my_friends:
+            my_friends = self.load_my_followers_as_userlist()
 
         cnt = 0
-        checked = set([self.ab.login_id])
-        for user_i in users_dataset:
+        for user_i in my_friends[:max_user_times]:
             if cnt >= actions:
                 self.ab.logger.debug(f'必要分のアクションが完了:  稼働アクション数:{cnt} > 要求アクション数:{actions}')
                 break
 
-            # 非公開でないユーザを探す
+            # 対象ユーザのプロフィールへ移動
             self.ab.profile.switch_to_user_profile(user_i['insta_id'])
+
+            # 非公開ならskip
             if self.ab.profile.check_private():
                 continue
 
-            # 自分のフォロワーのフォロー中へ遷移
-            self.ab.profile.switch_to_following(user_i['insta_id'])
+            # ターゲットのフォロワーへ遷移
+            self.ab.profile.switch_to_followers(user_i['insta_id'])
 
             # 一人のフォロワーから辿れるアクション数に最大値を設定する
             self.ab.logger.debug(f'フォロワーの探索を開始: {user_i["insta_id"]} アクション残: {cnt}/{actions}')
-            actions_in_this_user = min(7, actions - cnt)
+            actions_in_this_user = min(int(actions / 2), actions - cnt)
 
-            followed_cnt, fav_cnt, memo = self.follow_in_following(actions_in_this_user, checked, fav_rate)
+            # [フォロー中 or フォロワー] に表示されているユーザに対してアクションを仕込む
+            followed_cnt, fav_cnt, memo = self._follow_in_neighbors(actions_in_this_user, checked, fav_rate)
             cnt += (followed_cnt + fav_cnt)
             checked.update(memo)
+        self.ab.logger.debug('end operation: 対象ユーザの近隣を follow or fav')
 
-    def follow_in_following(self, actions, checked, fav_rate=0.8):
-        '''フォロー中画面に表示されているユーザをフォローする
+    def _follow_in_neighbors(self, actions, checked, fav_rate=0.8):
+        '''[フォロー中 or フォロワー] に表示されているユーザをフォローする
 
         Args:
             actions(int): フォローを押す回数
@@ -87,7 +105,7 @@ class Following():
             (int, int, set): フォローした数, favした回数,  チェック済みユーザ
 
         Conditions:
-            [プロフィール] - [フォロー中]
+            [プロフィール] - [フォロー中 or フォロワー]
         '''
         def check_valid():
             '''有効ユーザかチェックする
@@ -128,8 +146,11 @@ class Following():
                 reason_msg = "法人判定: フォロー中/フォロワー数 比率が大きい"
             return is_valid, reason_msg
 
-        def try_to_fav():
-            '''ファボを試す (最大3つ)
+        def try_to_fav(max_fav_cnt=3):
+            '''ファボを試す
+
+            Args:
+                max_fav_cnt (int): favする最大数
 
             Returns:
                 int: favした数
@@ -137,7 +158,7 @@ class Following():
             links = self.ab.profile.get_post_links()
             shuffle(links)
             fav_cnt = 0
-            for link in links[:3]:
+            for link in links[:max_fav_cnt]:
                 self.ab.driver.get(link)
                 fav_cnt += int(self.ab.post.fav())
             return fav_cnt
@@ -149,8 +170,8 @@ class Following():
         # ユーザセットを取得する
         users_dataset = self.ab.profile.get_user_parts()
 
-        # 上の方は相互フォローが固まってるから飛ばす（暫定処置）
-        users_dataset = users_dataset[-50:]
+        # とりあえずランダム化する（上の方は相互フォローが固まってたり、何回も走査してそうだし）
+        shuffle(users_dataset)
 
         for user_i in users_dataset:
             insta_id_i = user_i['insta_id']

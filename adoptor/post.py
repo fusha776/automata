@@ -21,11 +21,11 @@ class Post():
         Conditions:
             [投稿写真 or 投稿動画]
         '''
-        fav_btn = self.driver.find_elements_by_xpath('//section/span/button/*[contains(@aria-label, "いいね")]')
         already_faved = self.driver.find_elements_by_xpath('//section/span/button/*[contains(@aria-label, "取り消す")]')
         if already_faved:
             return False
 
+        fav_btn = self.driver.find_elements_by_xpath('//section/span/button/*[contains(@aria-label, "いいね")]')
         if fav_btn:
             fav_btn[0].click()
             # アクション回数を更新

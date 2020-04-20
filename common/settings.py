@@ -25,7 +25,7 @@ LAKE_ROOT_PATH = 'c:/Users/bell/python/project/instagram/appium/lake'
 ACTION_WAIT_SECONDS = 3
 
 # 全操作に紐づける画面制御の待機時間
-WAIT_SECONDS = 3
+WAIT_SECONDS = 2
 
 # 画面のロード完了に紐づける待機時間
 WAIT_LOADING_SECONDS = 20
