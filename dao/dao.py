@@ -3,7 +3,7 @@ from datetime import datetime
 import shutil
 from pathlib import Path
 from automata.common.settings import DATABASE_PATH
-from automata.common.settings import NG_USER_SIZE
+from automata.common.settings import NG_USER_SIZE, CACHED_TOUCHED_USER_SIZE
 
 
 class Dao():
@@ -269,6 +269,8 @@ class Dao():
                     t1.worker_id = t2.worker_id
             WHERE
                 t1.worker_group = ?
+            ORDER BY
+                t1.worker_id
         ''', (target_day, worker_group))
         return self.cursor.fetchall()
 
@@ -290,20 +292,30 @@ class Dao():
                     operated_on = ?
             ''', (self.worker_id, self.today))
 
-    def load_recent_following_checked_users(self):
-        '''直近でフォロー状況を確認したユーザを取得する
-
-        FB無しユーザをアンフォローする際に、どこまで確認したかのセーブポイントにする
+    def load_recent_touched_users(self, size=CACHED_TOUCHED_USER_SIZE):
+        '''直近で何らかのアクションを取ったアカを取得する
         '''
         self.cursor.execute(''' SELECT
                                     instagram_id
                                 FROM
-                                    recent_following_checks
+                                    recent_touched_histories
                                 WHERE
                                     worker_id = ?
                                 ORDER BY
                                     checked_at DESC
                                 LIMIT
-                                    50
-                            ''', (self.worker_id,))
+                                    ?
+                            ''', (self.worker_id, size))
         return self.cursor.fetchall()
+
+    def add_recent_touched_user(self, insta_id, is_private):
+        '''直近で何らかのアクションを取ったユーザを追加する
+        同じユーザへ何度も当たらないための処置（鍵アカのskipとかにも使えます）
+        '''
+        with self.conn:
+            self.conn.execute('''
+                INSERT OR REPLACE INTO
+                    recent_touched_histories
+                VALUES(?, ?, ?, ?);
+                ''', (self.worker_id, insta_id, is_private, datetime.now())
+            )

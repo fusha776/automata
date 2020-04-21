@@ -21,6 +21,10 @@ class Post():
         Conditions:
             [投稿写真 or 投稿動画]
         '''
+        # 写真が大きいとfavボタンとポップがぶつかってしまうので画面をずらす
+        # あんまりずらすとオススメ投稿が見えるのでちょっとだけ動かす
+        self.driver.execute_script('window.scrollBy(0, 100)')
+
         already_faved = self.driver.find_elements_by_xpath('//section/span/button/*[contains(@aria-label, "取り消す")]')
         if already_faved:
             return False

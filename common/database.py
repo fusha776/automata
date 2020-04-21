@@ -108,6 +108,7 @@ class Model():
             CREATE TABLE IF NOT EXISTS recent_touched_histories (
             worker_id TEXT,
             instagram_id TEXT,
+            is_private INTEGER,
             checked_at TIMESTAMP,
             PRIMARY KEY (worker_id, instagram_id)
         )'''

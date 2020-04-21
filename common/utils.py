@@ -53,15 +53,15 @@ def pause_ajax(waiting_sec=3):
     def _pause_ajax(func):
         def wrapper(self, *args, **kwargs):
             sleep(waiting_sec)
-            _close_ajax(self.driver)
+            close_ajax(self.driver)
             res = func(self, *args, **kwargs)
-            _reopen_ajax(self.driver)
+            reopen_ajax(self.driver)
             return res
         return wrapper
     return _pause_ajax
 
 
-def _close_ajax(driver):
+def close_ajax(driver):
     '''ajax通信をバイパスする
 
     (1)
@@ -84,7 +84,7 @@ def _close_ajax(driver):
     driver.execute_script("XMLHttpRequest.prototype.send = function(){console.log('stopped ajax request', arguments)};")
 
 
-def _reopen_ajax(driver):
+def reopen_ajax(driver):
     '''ajax通信を復旧する
 
     オブジェクトのbackup有無を確認していないので、事前に close_ajax() が実行されている必要がある

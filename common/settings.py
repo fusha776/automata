@@ -44,5 +44,7 @@ KEEPING_DAYS = 14
 # F-back有無を問わず、フォローしてからアンフォローするまでの日数
 FLLOWING_ALIVE_DAYS = 5
 
-# NGユーザをあらかじめキャッシュする数
-NG_USER_SIZE = 5000
+# 直近アクション有りユーザをキャッシュする数
+CACHED_TOUCHED_USER_SIZE = 5000
+
+NG_USER_SIZE = 1000  # 廃止予定

@@ -19,7 +19,7 @@ class Following():
         self.ab.profile.switch_to_following(self.ab.login_id)
 
         # ユーザセットを取得する
-        raw_userlists = self.ab.profile.get_user_parts()
+        raw_userlists = self.ab.profile.read_neighbor_datasets()
 
         # 必要なカラムに絞る
         userlists = []
@@ -168,7 +168,7 @@ class Following():
         error_cnt = 0
 
         # ユーザセットを取得する
-        users_dataset = self.ab.profile.get_user_parts()
+        users_dataset = self.ab.profile.read_neighbor_datasets()
 
         # とりあえずランダム化する（上の方は相互フォローが固まってたり、何回も走査してそうだし）
         shuffle(users_dataset)

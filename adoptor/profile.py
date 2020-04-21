@@ -1,3 +1,4 @@
+from time import sleep
 from automata.common.utils import wait, loading
 from automata.common.utils import pause_ajax
 
@@ -15,12 +16,18 @@ class Profile():
     @wait
     def switch_to_user_profile(self, insta_id):
         '''指定されたインスタグラムID の[プロフィール]へ遷移する
-        URL直書きで飛べるけど、変なアクセスに見られないように注意が必要かも
+        アカ削除済等で遷移できないケースがある
+
+        WARN:
+            URL直書きで飛べるけど、変なアクセスに見られないように注意が必要かも
 
         Args:
             insta_id (str): インスタグラムID
         '''
         self.driver.get(f'https://www.instagram.com/{insta_id}/?hl=ja')
+        # if self.driver.find_elements_by_xpath('//*[contains(text(), "このページはご利用いただけません")]'):
+        #     return False
+        # return True
 
     @loading
     @wait
@@ -48,11 +55,12 @@ class Profile():
 
     @loading
     @wait
-    def follow(self, allow_to_follow_back=False):
+    def follow(self, insta_id, insert_into_table=True):
         '''フォローする
 
         Args:
-            allow_to_follow_back (bool): フォローバック可否
+            insta_id (str): プロフィールから取るより早くて安全
+            insert_into_table (bool): following_status テーブルへレコード追加する
 
         Returns:
             bool: フォロー成功 -> True
@@ -60,78 +68,133 @@ class Profile():
         Conditions:
             [プロフィール]
         '''
-        profs = self.get_user_details()
-        insta_id = profs['insta_id']
-
-        # プロフィール取得失敗
-        if not insta_id:
-            self.mediator.logger.debug('フォロー skip: プロフィール取得失敗')
-            return False
-
         has_followed = False
-        btn_is_found = False
-        if not btn_is_found:
-            el = self.pick_follow_btn()
-            if el:
-                el.click()
-                btn_is_found = True
-                has_followed = True
-
-        if (not btn_is_found) and allow_to_follow_back:
-            el = self.pick_followback_btn()
-            if el:
-                el.click()
-                btn_is_found = True
-                has_followed = True
+        el = self.pick_follow_btn()
+        if el:
+            el.click()
+            has_followed = True
 
         # アクション更新
         if has_followed:
-            self.mediator.logger.debug(f'followed: {insta_id}')
             # ステータスを更新
-            self.mediator.dao.add_following(insta_id, has_followed=1, is_follower=0)
+            if insert_into_table:
+                self.mediator.dao.add_following(insta_id, has_followed=1, is_follower=0)
             # アクション回数を更新
             self.mediator.dao.increase_action_count({'follow': 1})
         return has_followed
 
     @loading
     @wait
-    def unfollow(self, insta_id):
+    def follow_back(self, insta_id, insert_into_table=True):
+        '''フォローバックする
+
+        Args:
+            insta_id (str): プロフィールから取るより早くて安全
+            insert_into_table (bool): following_status テーブルへレコード追加する
+
+        Returns:
+            bool: フォローバック成功 -> True
+
+        Conditions:
+            [プロフィール]
+        '''
+        has_followed = False
+        el = self.pick_followback_btn()
+        if el:
+            el.click()
+            has_followed = True
+
+        # アクション更新
+        if has_followed:
+            # ステータスを更新
+            if insert_into_table:
+                self.mediator.dao.add_following(insta_id, has_followed=1, is_follower=0)
+            # アクション回数を更新
+            self.mediator.dao.increase_action_count({'follow': 1})
+        return has_followed
+
+    @loading
+    @wait
+    def unfollow(self, insta_id, stop_private=False):
         '''指定されたインスタIDをアンフォローする
-        画面からもインスタID取れるけど、もらった方が早い
+
 
         WARN:
             鍵アカの場合はちょっと考えてない... automataは現状鍵アカをスルーする方針
+
+        Args:
+            insta_id (str): 画面からもインスタID取れるけど、もらった方が早い
+            stop_private (bool): 鍵アカのアンフォロー止める -> True
 
         Returns:
             bool: アンフォローに成功 -> True
         '''
         unfollow_btn = self.pick_unfollow_btn()
-        if not unfollow_btn:
-            if self.pick_follow_btn():
-                # フォローボタンが見つかった場合： 相手先から解除された
-                self.mediator.logger.debug(f'相手から解除された. フォロー中リストから削除: {insta_id}')
-            elif self.pick_followback_btn():
-                # フォローバックボタンが見つかった場合： 相手先から解除された？
-                self.mediator.logger.debug(f'削除された？（フォローバックボタンを確認）. フォロー中リストから削除: {insta_id}')
-            else:
-                # その他： 理由不明。画面呼び出しの失敗 or リクエスト中？
-                self.mediator.logger.debug(f'要素の取得失敗 or リクエスト中 のためskip: {insta_id}')
-                return False
-        else:
-            # 見つかった場合はアンフォロー
+        if unfollow_btn:
+            # フォローボタンが見つかった場合はアンフォロー
             unfollow_btn.click()
+            if stop_private:
+                if self.mediator.modal.check_unfollow_dialog_if_private():
+                    self.mediator.logger.debug(f'鍵アカのためアンフォローを中止: {insta_id}')
+                    return False
             self.mediator.modal.press_unfollow_at_profile_home()
-            self.mediator.logger.debug(f'対象アカウントをアンフォロー: {insta_id}')
+            self.mediator.logger.debug(f'アクション unfollow: {insta_id}')
+        elif self.pick_follow_btn():
+            # フォローボタンが見つかった場合： 相手先から解除された
+            self.mediator.logger.debug(f'アクション unfollow: 相手から解除された. フォロー中リストから削除: {insta_id}')
+        elif self.pick_followback_btn():
+            # フォローバックボタンが見つかった場合： 相手先から解除された？
+            self.mediator.logger.debug(f'アクション unfollow: 削除された？（フォローバックボタンを確認）. フォロー中リストから削除: {insta_id}')
+        else:
+            # その他： 理由不明。画面呼び出しの失敗 or リクエスト中？
+            self.mediator.logger.debug(f'アクション unfollow: 要素の取得失敗 or リクエスト中 のためskip: {insta_id}')
+            return False
 
         self.mediator.dao.delete_following(insta_id)
         self.mediator.dao.increase_action_count({'unfollow': 1})
         return True
 
-    @pause_ajax(waiting_sec=5)
-    def get_user_parts(self):
+    def read_neighbor_datasets(self, waiting_sec=5):
+        '''一定時間待機でデータロードしてから、ユーザ名とフォロー状況のdictを返却する
+
+        Args:
+            waiting_sec (int): ajax停止前に待機する秒数
+        '''
+        sleep(waiting_sec)
+        return self._read_neighbor_datasets()
+
+    def read_neighbor_datasets_on_order(self, min_rec_size, retry_cnt=5):
+        '''ユーザリストが指定サイズを超えるまで待機してから、ユーザ名とフォロー状況のdictを返却する
+
+        WARN:
+            一定回数繰り返しても取得できるユーザ数が変わらなければそこで中断
+
+        Args:
+            min_rec_size (int): 最低限ほしいユーザリストの件数
+            retry_cnt (int): ユーザ数が変わらなくても画面ロードを待つリトライ回数
+        '''
+        cnt_size_is_same = 0
+        rec_size, pre_rec_size = 0, 0
+        while (rec_size < min_rec_size) and (cnt_size_is_same <= retry_cnt):
+            sleep(1)
+            users = self.driver.find_elements_by_xpath('//li')
+            if users:
+                rec_size = len(users)
+            if rec_size == pre_rec_size:
+                cnt_size_is_same += 1
+            else:
+                pre_rec_size = rec_size
+                cnt_size_is_same = 0
+            self.mediator.logger.debug(f'ユーザリスト now loading: ロード件数 -> {rec_size}')
+        return self._read_neighbor_datasets()
+
+    @pause_ajax(waiting_sec=0)
+    def _read_neighbor_datasets(self):
         '''表示されているユーザに対して、ユーザIDと名前ボタン、フォローボタンを取得する
         都度ロードされていくので完了まで待つのは現実的ではないし、API制限でブロックされそう
-        指定件数の取得が完了したらstopとかでもいいかも
+
+        WARN:
+            画面やユーザデータのロード待ちは関数外実行の前提で動きます
 
         Returns:
             dict: key -> {インスタID, フォローボタンのテキスト, ユーザ名のelement, フォローボタンのelement}
@@ -139,7 +202,7 @@ class Profile():
         Conditions:
             [プロフィール] - [フォロワー or フォロー中]
         '''
-        # 要素リストの読み込みを少し待ってからユーザの配列取得（読み込みはpause_ajax内でwait）
+        # 要素リストを取得
         users = self.driver.find_elements_by_xpath('//li')
         if users is None:
             users = []
@@ -223,15 +286,16 @@ class Profile():
         profiles['is_not_touched'] = False
         profiles['has_requested'] = False
 
-        fbtn_base = self.driver.find_element_by_xpath('//header/section')
-        if fbtn_base.find_elements_by_xpath('.//button[contains(text(), "メッセージを送信")]'):
-            profiles['is_following'] = True
-        if fbtn_base.find_elements_by_xpath('.//button[contains(text(), "リクエスト済み")]'):
-            profiles['has_requested'] = True
-        if self.pick_follow_btn():
-            profiles['is_not_touched'] = True
-        if self.pick_followback_btn():
-            profiles['is_only_followed'] = True
+        fbtn_base = self.driver.find_elements_by_xpath('//header/section')
+        if fbtn_base:
+            if fbtn_base[0].find_elements_by_xpath('.//button[contains(text(), "メッセージを送信")]'):
+                profiles['is_following'] = True
+            if fbtn_base[0].find_elements_by_xpath('.//button[contains(text(), "リクエスト済み")]'):
+                profiles['has_requested'] = True
+            if self.pick_follow_btn():
+                profiles['is_not_touched'] = True
+            if self.pick_followback_btn():
+                profiles['is_only_followed'] = True
 
         # プライペートフラグを取得
         profiles['is_private'] = self.check_private()
@@ -262,8 +326,10 @@ class Profile():
         Conditions:
             [プロフィール]
         '''
-        fbtn_base = self.driver.find_element_by_xpath('//header/section')
-        res = fbtn_base.find_elements_by_xpath('.//button[contains(text(), "フォローする")]')
+        res = None
+        fbtn_base = self.driver.find_elements_by_xpath('//header/section')
+        if fbtn_base:
+            res = fbtn_base[0].find_elements_by_xpath('.//button[contains(text(), "フォローする")]')
         return res[0] if res else None
 
     @loading
@@ -276,8 +342,10 @@ class Profile():
         Conditions:
             [プロフィール]
         '''
-        fbtn_base = self.driver.find_element_by_xpath('//header/section')
-        res = fbtn_base.find_elements_by_xpath('.//button[contains(text(), "フォローバックする")]')
+        res = None
+        fbtn_base = self.driver.find_elements_by_xpath('//header/section')
+        if fbtn_base:
+            res = fbtn_base[0].find_elements_by_xpath('.//button[contains(text(), "フォローバックする")]')
         return res[0] if res else None
 
     @loading
@@ -290,8 +358,10 @@ class Profile():
         Conditions:
             [プロフィール]        
         '''
-        fbtn_base = self.driver.find_element_by_xpath('//header/section')
-        res = fbtn_base.find_elements_by_xpath('.//span[contains(@aria-label, "フォロー中")]')
+        res = None
+        fbtn_base = self.driver.find_elements_by_xpath('//header/section')
+        if fbtn_base:
+            res = fbtn_base[0].find_elements_by_xpath('.//span[contains(@aria-label, "フォロー中")]')
         return res[0] if res else None
 
     @loading
