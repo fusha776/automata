@@ -22,7 +22,13 @@ LAKE_ROOT_PATH = 'c:/Users/bell/python/project/instagram/appium/lake'
 ###########
 
 # 次の動作までの停止時間の目安（秒）
-ACTION_WAIT_SECONDS = 3
+#
+# 結構重要そうなパラメータ
+# 多重ブラウザに対応したらもう少し大きくしよう
+#
+# 3秒だとそこそこAPI制限エラーが出る
+#
+ACTION_WAIT_SECONDS = 5
 
 # 全操作に紐づける画面制御の待機時間
 WAIT_SECONDS = 2

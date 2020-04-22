@@ -1,4 +1,5 @@
 from random import random, shuffle
+from math import ceil
 from automata.common.settings import FOLLOWER_UPPER_LIMIT
 
 
@@ -9,8 +10,11 @@ class Following():
     def __init__(self, abilities):
         self.ab = abilities
 
-    def load_my_followers_as_userlist(self):
+    def load_my_followers_as_userlist(self, rec_size=50):
         '''自分のフォロワーからユーザリストを生成
+
+        Args:
+            rec_size (int): 取得するアカの数
 
         Returns:
             dict[]: key -> {'insta_id', 'follow_msg'}
@@ -19,7 +23,7 @@ class Following():
         self.ab.profile.switch_to_following(self.ab.login_id)
 
         # ユーザセットを取得する
-        raw_userlists = self.ab.profile.read_neighbor_datasets()
+        raw_userlists = self.ab.profile.read_neighbor_datasets_on_order(rec_size, set())
 
         # 必要なカラムに絞る
         userlists = []
@@ -57,15 +61,18 @@ class Following():
         self.ab.profile.switch_to_user_profile(self.ab.login_id)
         self.ab.profile.switch_to_following(self.ab.login_id)
 
-        # automataがフォローしたリストを検索対象から除外する
-        skipped = self.ab.dao.fetch_valid_followings()
-        skipped = set([i['instagram_id'] for i in skipped])
+        # 検索対象から除外する: automataがフォロー, 直近タッチ有り
+        skipped_follow = self.ab.dao.fetch_valid_followings()
+        skipped_follow = set([u['instagram_id'] for u in skipped_follow])
+        skipped_touch = self.ab.dao.load_recent_touched_users()
+        skipped_touch = {u['instagram_id'] for u in skipped_touch}
         checked = set([self.ab.login_id])
-        checked.update(skipped)
+        checked.update(skipped_follow)
+        checked.update(skipped_touch)
 
         # 渡されなかったらユーザリストを取得
         if not my_friends:
-            my_friends = self.load_my_followers_as_userlist()
+            my_friends = self.load_my_followers_as_userlist(max_user_times)
 
         cnt = 0
         for user_i in my_friends[:max_user_times]:
@@ -85,7 +92,7 @@ class Following():
 
             # 一人のフォロワーから辿れるアクション数に最大値を設定する
             self.ab.logger.debug(f'フォロワーの探索を開始: {user_i["insta_id"]} アクション残: {cnt}/{actions}')
-            actions_in_this_user = min(int(actions / 2), actions - cnt)
+            actions_in_this_user = min(ceil(actions / 2), actions - cnt)
 
             # [フォロー中 or フォロワー] に表示されているユーザに対してアクションを仕込む
             followed_cnt, fav_cnt, memo = self._follow_in_neighbors(actions_in_this_user, checked, fav_rate)
@@ -167,13 +174,14 @@ class Following():
         fav_cnt = 0
         error_cnt = 0
 
-        # ユーザセットを取得する
-        users_dataset = self.ab.profile.read_neighbor_datasets()
+        # ユーザセットを取得する.
+        # アカウント状況未確認のため有効件数は不明
+        new_users_dataset = self.ab.profile.read_neighbor_datasets_on_order(actions, checked)
 
-        # とりあえずランダム化する（上の方は相互フォローが固まってたり、何回も走査してそうだし）
-        shuffle(users_dataset)
+        # とりあえずランダム化する（上の方は相互フォローが固まってる可能性がある）
+        shuffle(new_users_dataset)
 
-        for user_i in users_dataset:
+        for user_i in new_users_dataset:
             insta_id_i = user_i['insta_id']
 
             # 必要分のアクションが終わったら離脱
@@ -183,22 +191,24 @@ class Following():
             if error_cnt > 20:
                 self.ab.logger.debug('復旧ムーブ: アクションエラーが続くため参照元フォロワーを変更')
                 break
-            # チェック済ならskip
-            if insta_id_i in checked:
-                continue
             # フォロー中ならskip
-            if ('フォロー中' in user_i['follow_msg']) or ('リクエスト済み' in user_i['follow_msg']):
+            if ('フォロー中' in user_i['follow_msg']):
+                self.ab.dao.add_recent_touched_user(insta_id_i, None)
+                continue
+            elif ('リクエスト済み' in user_i['follow_msg']):
+                self.ab.dao.add_recent_touched_user(insta_id_i, 1)
                 continue
 
-            # キャッシュしてプロフィールへ
-            checked.add(insta_id_i)
+            # プロフィールへ
             self.ab.profile.switch_to_user_profile(insta_id_i)
 
             # 有効なユーザか確かめる
             is_valid, reason_msg = check_valid()
             if not is_valid:
                 error_cnt += 1
-                self.ab.logger.debug(f'is invalid: {insta_id_i}, {reason_msg}')
+                is_private = True if '鍵アカ' in reason_msg else False
+                self.ab.dao.add_recent_touched_user(insta_id_i, int(is_private))
+                self.ab.logger.debug(f'無効なユーザ: {insta_id_i}, {reason_msg}')
                 continue
 
             # 同一アクションの連続はブロックの危険があがるので、ランダムでアクションを変える
@@ -212,14 +222,13 @@ class Following():
                 else:
                     error_cnt += 1
             else:
-                # フォローをトライする
+                # フォローをトライする (フォローバックはしない)
                 has_followed = self.ab.profile.follow(insta_id_i)
                 self.ab.logger.debug(f'アクション follow: {insta_id_i}')
                 if has_followed:
                     followed_cnt += 1
                     error_cnt = 0
-                else:
-                    error_cnt += 1
+            self.ab.dao.add_recent_touched_user(insta_id_i, 0)
 
         self.ab.logger.debug(f'フォロワーの探索を終了: 追加アクション計: follow -> {followed_cnt}, fav -> {fav_cnt}')
         return followed_cnt, fav_cnt, checked

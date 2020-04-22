@@ -63,15 +63,12 @@ class Unfollowing():
         # 新規確認のユーザ集合を必要分を保証するように回収する
         touched_users = self.ab.dao.load_recent_touched_users()
         touched_users = {u['instagram_id'] for u in touched_users}
-        raw_userlists = self.ab.profile.read_neighbor_datasets_on_order(len(touched_users) + user_size_to_check)
-        usersets = {u['insta_id'] for u in raw_userlists}
-
-        # 過去にアクション済のユーザを確認対象から外す
-        usersets ^= touched_users
+        new_usersets = self.ab.profile.read_neighbor_datasets_on_order(user_size_to_check, touched_users)
+        new_usersets = {u['insta_id'] for u in new_usersets}
 
         # 確認対象アカのフォローバックを確認する
         followed_cnt, unfollowed_cnt = 0, 0
-        for insta_id_i in usersets:
+        for insta_id_i in new_usersets:
             # 必要分のアクションが終わったら離脱
             if (unfollowed_cnt + followed_cnt) >= actions:
                 break
@@ -85,6 +82,7 @@ class Unfollowing():
                 unfollowed_cnt += 1
             else:
                 self.ab.logger.debug(f'鍵アカをskip: {insta_id_i}')
+                self.ab.dao.add_recent_touched_user(insta_id_i, 1)
                 continue
 
             # フォローバックされてたら再フォローする

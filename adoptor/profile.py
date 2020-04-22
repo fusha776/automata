@@ -1,6 +1,6 @@
 from time import sleep
 from automata.common.utils import wait, loading
-from automata.common.utils import pause_ajax
+from automata.common.utils import close_ajax, reopen_ajax
 
 
 class Profile():
@@ -154,82 +154,72 @@ class Profile():
         self.mediator.dao.increase_action_count({'unfollow': 1})
         return True
 
-    def read_neighbor_datasets(self, waiting_sec=8):
-        '''一定時間待機でデータロードしてから、ユーザ名とフォロー状況のdictを返却する
-
-        Args:
-            waiting_sec (int): ajax停止前に待機する秒数
-        '''
-        sleep(waiting_sec)
-        return self._read_neighbor_datasets()
-
-    def read_neighbor_datasets_on_order(self, min_rec_size, retry_cnt=5):
-        '''ユーザリストが指定サイズを超えるまで待機してから、ユーザ名とフォロー状況のdictを返却する
+    @loading
+    def read_neighbor_datasets_on_order(self, min_rec_size, checked, retry_cnt=5):
+        '''指定サイズを超えるまでユーザリストを取得し続ける
 
         WARN:
-            一定回数繰り返しても取得できるユーザ数が変わらなければそこで中断
+            一定回数繰り返しても新規アカが画面ロードされなければそこで中断
 
         Args:
             min_rec_size (int): 最低限ほしいユーザリストの件数
-            retry_cnt (int): ユーザ数が変わらなくても画面ロードを待つリトライ回数
+            checked (set): 取得対象外にするインスタID
+            retry_cnt (int): 新規アカが画面ロードされなくても待つリトライ回数 ※離脱条件にも使うので変な値を入れてはいけない
         '''
-        cnt_size_is_same = 0
-        rec_size, pre_rec_size = 0, 0
-        while (rec_size < min_rec_size) and (cnt_size_is_same <= retry_cnt):
-            sleep(1)
+        waiting_cnt = 0
+        next_row = 0
+        new_userlists = []
+        users = []
+        need_to_reload = True
+        while waiting_cnt <= retry_cnt:
+            # 次のアカを取得する
             users = self.driver.find_elements_by_xpath('//li')
-            if users:
-                rec_size = len(users)
-            if rec_size == pre_rec_size:
-                cnt_size_is_same += 1
+            if next_row < len(users):
+                user = users[next_row]
+                next_row += 1
+                waiting_cnt = 0
             else:
-                pre_rec_size = rec_size
-                cnt_size_is_same = 0
-            self.mediator.logger.debug(f'ユーザリスト now loading: ロード件数 -> {rec_size}')
-        return self._read_neighbor_datasets()
+                if need_to_reload:
+                    sleep(0.5)  # ロード待ち
+                waiting_cnt += 1
+                continue
 
-    @pause_ajax(waiting_sec=0)
-    def _read_neighbor_datasets(self):
-        '''表示されているユーザに対して、ユーザIDと名前ボタン、フォローボタンを取得する
-        都度ロードされていくので完了まで待つのは現実的ではないし、API制限でブロックされそう
-
-        WARN:
-            画面やユーザデータのロード待ちは関数外実行の前提で動きます
-
-        Returns:
-            dict: key -> {インスタID, フォローボタンのテキスト, ユーザ名のelement, フォローボタンのelement}
-
-        Conditions:
-            [プロフィール] - [フォロワー or フォロー中]
-        '''
-        # 要素リストを取得
-        users = self.driver.find_elements_by_xpath('//li')
-        if users is None:
-            users = []
-        user_cnt = len(users)
-        self.mediator.logger.debug(f'ユーザリストの取得: 件数 -> {user_cnt}')
-
-        res = []
-        for i in range(user_cnt):
-            user = self.driver.find_elements_by_xpath('//li')[i]
+            # フォローボタンをキャッシュ
             el_fbtns = user.find_elements_by_xpath('.//button')
 
-            # ストーリー有無によって、aタグの数が異なる
+            # インスタIDボタンをキャッシュ
             id_btn = None
-            for el in user.find_elements_by_xpath('.//a'):
+            for el in user.find_elements_by_xpath('.//a'):  # ストーリー有無によって、aタグの数が異なる
                 insta_id = el.get_attribute('title')
                 if insta_id:
                     id_btn = el
                     break
 
+            # ボタン取得に失敗したらskip
             if not (id_btn and el_fbtns):
                 continue
+            # 既にアクション済みだったらskip
+            if insta_id in checked:
+                continue
 
-            res.append({'insta_id': insta_id,
-                        'follow_msg': el_fbtns[0].text,
-                        'id_btn': id_btn,
-                        'follow_btn': el_fbtns[0]})
-        return res if res else None
+            new_userlists.append({'insta_id': insta_id,
+                                  'follow_msg': el_fbtns[0].text,
+                                  'id_btn': id_btn,
+                                  'follow_btn': el_fbtns[0]})
+
+            # 途中経過
+            if len(new_userlists) % 50 == 0:
+                self.mediator.logger.debug(f'未タッチユーザリスト now loading: 取得済 -> {len(new_userlists)}, 画面全体 -> {len(users)}')
+
+            if need_to_reload:
+                if (len(users) >= len(checked) + 2 * min_rec_size) or (len(new_userlists) >= min_rec_size):
+                    # 始めて必要数確保できたら、画面ロードを止めて表示された分だけついでに回収する
+                    close_ajax(self.driver)
+                    reopen_ajax(self.driver)
+                    need_to_reload = False
+
+        self.mediator.logger.debug(f'未タッチユーザリストの取得完了: リスト件数 -> {len(new_userlists)}, 画面ロード件数 -> {len(users)}')
+        return new_userlists
 
     @loading
     def get_user_details(self):
@@ -356,7 +346,7 @@ class Profile():
             element: アンフォローボタンのelement
 
         Conditions:
-            [プロフィール]        
+            [プロフィール]
         '''
         res = None
         fbtn_base = self.driver.find_elements_by_xpath('//header/section')
@@ -375,7 +365,7 @@ class Profile():
         photos = photo_frame.find_elements_by_xpath('.//a[contains(@href, "/p/")]')  # /p/ を付けないとオススメ垢のリンクがヒットする
 
         links = []
-        for photo in photos[:max_size]:
+        for photo in photos[: max_size]:
             href = photo.get_attribute('href')
             links.append(href)
         return links
