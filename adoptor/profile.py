@@ -154,7 +154,7 @@ class Profile():
         self.mediator.dao.increase_action_count({'unfollow': 1})
         return True
 
-    def read_neighbor_datasets(self, waiting_sec=5):
+    def read_neighbor_datasets(self, waiting_sec=8):
         '''一定時間待機でデータロードしてから、ユーザ名とフォロー状況のdictを返却する
 
         Args:

@@ -61,7 +61,8 @@ class Unfollowing():
         self.ab.profile.switch_to_following(self.ab.login_id)
 
         # 新規確認のユーザ集合を必要分を保証するように回収する
-        touched_users = set(self.ab.dao.load_recent_touched_users())
+        touched_users = self.ab.dao.load_recent_touched_users()
+        touched_users = {u['instagram_id'] for u in touched_users}
         raw_userlists = self.ab.profile.read_neighbor_datasets_on_order(len(touched_users) + user_size_to_check)
         usersets = {u['insta_id'] for u in raw_userlists}
 
