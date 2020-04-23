@@ -24,7 +24,7 @@ class Profile():
         Args:
             insta_id (str): インスタグラムID
         '''
-        self.driver.get(f'https://www.instagram.com/{insta_id}/?hl=ja')
+        self.driver.get(f'https://www.instagram.com/{insta_id}/')
         # if self.driver.find_elements_by_xpath('//*[contains(text(), "このページはご利用いただけません")]'):
         #     return False
         # return True
