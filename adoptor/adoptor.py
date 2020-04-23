@@ -11,4 +11,4 @@ class Adaptor():
     def __init__(self, mediator):
         self.mediator = mediator
         self.driver = self.mediator.driver
-        self.login_id = self.mediator.worker_conf.login_id
+        self.login_id = self.mediator.doll_conf.login_id

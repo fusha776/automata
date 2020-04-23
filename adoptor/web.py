@@ -12,8 +12,8 @@ class Web():
     def __init__(self, mediator):
         self.mediator = mediator
         self.driver = self.mediator.driver
-        self.login_id = self.mediator.worker_conf.login_id
-        self.password = self.mediator.worker_conf.password
+        self.login_id = self.mediator.doll_conf.login_id
+        self.password = self.mediator.doll_conf.password
 
     def switch_to_instagram_home(self):
         '''インスタグラムのホームへ移動する

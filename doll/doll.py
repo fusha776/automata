@@ -5,31 +5,31 @@ from automata.workflow.facade import Facade
 # from automata.common.exception import ActionBlockException
 
 
-class Worker():
+class Doll():
     '''アクションフローを制御するクラス
     '''
 
-    def __init__(self, worker_id, *args, **kwargs):
-        self.facade = Facade(worker_id=worker_id)
+    def __init__(self, doll_id, *args, **kwargs):
+        self.facade = Facade(doll_id=doll_id)
         self.args = args
         self.kwargs = kwargs
 
     def operate(self):
-        '''各ワーカー別のworkflow動作を設定する
+        '''各doll別のworkflow動作を設定する
         '''
         raise NotImplementedError
 
-    def select_worker_id(self):
+    def select_doll_id(self):
         '''当日のアクション状況と最終実行日時から以下を決定する
-        * 起動する worker_id
+        * 起動する doll_id
         * 実行する各アクションの件数
         '''
         # TODO: 実装する
         # 今は手打ちで流している、自動起動のタイミングで実装が必須になるはず
         pass
 
-    def create_worker(self, worker_id):
-        '''上記で選定されたworker_id のworkerを立ち上げる
+    def create_doll(self, doll_id):
+        '''上記で選定されたdoll_id のdollを立ち上げる
         このあたり、別のモジュールへ分けた方が良さそう
         '''
         pass
@@ -45,7 +45,7 @@ class Worker():
         el = self.facade.abilities.driver.find_elements_by_xpath('//*[contains(text(), "ブロック")]')
         if el:
             # body = self.wf.pixel.driver.find_elements_by_id('com.instagram.android:id/dialog_body') もう一度要素確認したい
-            self.facade.abilities.logger.debug(f'アクションのブロックを検知 {self.wf.worker_id}: {el[0].text}.')
+            self.facade.abilities.logger.debug(f'アクションのブロックを検知 {self.wf.doll_id}: {el[0].text}.')
             is_blocked = True
         else:
             if len(el) >= 1:
@@ -70,7 +70,7 @@ class Worker():
                 self.abilities.dao.put_blocked_mark()
 
             # スクリーンショットを保存
-            ss_dir = f'./log/{self.facade.abilities.worker_id}/screenshots'
+            ss_dir = f'./log/{self.facade.abilities.doll_id}/screenshots'
             self.facade.abilities.driver.save_screenshot(f'{ss_dir}/screenshot_{datetime.now().strftime("%Y%m%d%H%M%S")}.png')
 
             # htmlの保存（※保留中、動作が安定してきたら追加するかも）

@@ -20,11 +20,11 @@ class Model():
 
     def create_tables(self):
         dm_histories = '''CREATE TABLE IF NOT EXISTS dm_histories (
-            worker_id TEXT,
+            doll_id TEXT,
             instagram_id TEXT,
             dm_message_id TEXT,
             sent_on TEXT,
-            PRIMARY KEY (worker_id, instagram_id)
+            PRIMARY KEY (doll_id, instagram_id)
         )'''
 
         dm_messages_mst = '''CREATE TABLE IF NOT EXISTS dm_messages_mst (
@@ -34,13 +34,13 @@ class Model():
         )'''
 
         following_status = '''CREATE TABLE IF NOT EXISTS following_status (
-            worker_id TEXT,
+            doll_id TEXT,
             instagram_id TEXT,
             has_followed INTEGER,
             is_follower INTEGER,
             created_at TIMESTAMP,
             updated_at TIMESTAMP,
-            PRIMARY KEY (worker_id, instagram_id)
+            PRIMARY KEY (doll_id, instagram_id)
         )'''
 
         hashtag_groups_mst = '''CREATE TABLE IF NOT EXISTS hashtag_groups_mst (
@@ -49,8 +49,8 @@ class Model():
             PRIMARY KEY (hashtag_group, hashtag)
         )'''
 
-        worker_settings = '''CREATE TABLE IF NOT EXISTS worker_settings (
-            worker_id TEXT PRIMARY KEY,
+        doll_settings = '''CREATE TABLE IF NOT EXISTS doll_settings (
+            doll_id TEXT PRIMARY KEY,
             description TEXT,
             login_id TEXT,
             label TEXT,
@@ -59,8 +59,8 @@ class Model():
             browser_data_dir TEXT,
             profile_dir TEXT,
             device_name TEXT,
-            worker_group TEXT,
-            worker_group_lake_path TEXT,
+            doll_group TEXT,
+            doll_group_lake_path TEXT,
             dm_message_id TEXT,
             hashtag_group TEXT,
             post_per_day INTEGER,
@@ -76,7 +76,7 @@ class Model():
         )'''
 
         action_counters = '''CREATE TABLE IF NOT EXISTS action_counters (
-            worker_id TEXT,
+            doll_id TEXT,
             operated_on TEXT,
             post INTEGER,
             dm INTEGER,
@@ -85,55 +85,56 @@ class Model():
             unfollow INTEGER,
             others INTEGER,
             summary_cnt INTEGER,
-            PRIMARY KEY (worker_id, operated_on)
+            is_blocked INTEGER,
+            PRIMARY KEY (doll_id, operated_on)
         )'''
 
         ng_users = '''CREATE TABLE IF NOT EXISTS ng_users (
-            worker_group TEXT,
+            doll_group TEXT,
             instagram_id TEXT,
             created_on TEXT,
             is_permanent INTEGER,
-            PRIMARY KEY (worker_group, instagram_id)
+            PRIMARY KEY (doll_group, instagram_id)
         )'''
 
-        worker_status = '''
-            CREATE TABLE IF NOT EXISTS worker_status (
-            worker_id TEXT,
+        doll_status = '''
+            CREATE TABLE IF NOT EXISTS doll_status (
+            doll_id TEXT PRIMARY KEY,
             last_booted_at TIMESTAMP,
             today_booted_times INTEGER,
             is_running INTEGER,
-            is_blocked INTEGER,
-            PRIMARY KEY (worker_id)
+            is_blocked INTEGER
         )'''
 
         recent_touched_histories = '''
             CREATE TABLE IF NOT EXISTS recent_touched_histories (
-            worker_id TEXT,
+            doll_id TEXT,
             instagram_id TEXT,
             is_private INTEGER,
             checked_at TIMESTAMP,
-            PRIMARY KEY (worker_id, instagram_id)
+            PRIMARY KEY (doll_id, instagram_id)
         )'''
 
         with self.conn:
-            self.conn.execute(dm_histories)
-            self.conn.execute(dm_messages_mst)
+            _ = dm_histories, dm_messages_mst, hashtag_groups_mst, ng_users  # 現在未使用テーブル、Lintのエラー避け
+            # self.conn.execute(dm_histories)
+            # self.conn.execute(dm_messages_mst)
             self.conn.execute(following_status)
-            self.conn.execute(hashtag_groups_mst)
-            self.conn.execute(worker_settings)
+            # self.conn.execute(hashtag_groups_mst)
+            self.conn.execute(doll_settings)
             self.conn.execute(action_counters)
-            self.conn.execute(ng_users)
-            self.conn.execute(worker_status)
+            # self.conn.execute(ng_users)
+            self.conn.execute(doll_status)
             self.conn.execute(recent_touched_histories)
 
     def migrate(self):
         '''マスタ他のレコードを、実行するたびに洗い替えする
         '''
 
-        worker_settings = '''INSERT OR REPLACE INTO worker_settings (
-                                 worker_id, description, login_id, label, password, client,
+        doll_settings = '''INSERT OR REPLACE INTO doll_settings (
+                                 doll_id, description, login_id, label, password, client,
                                  browser_data_dir, profile_dir, device_name,
-                                 worker_group, worker_group_lake_path, dm_message_id, hashtag_group,
+                                 doll_group, doll_group_lake_path, dm_message_id, hashtag_group,
                                  post_per_day, dm_per_day, fav_per_day, follow_per_day, unfollow_per_day,
                                  post_per_boot, dm_per_boot, fav_per_boot, follow_per_boot, unfollow_per_boot)
                              VALUES(?, ?, ?, ?, ?, ?,
@@ -142,14 +143,14 @@ class Model():
                                     ?, ?, ?, ?, ?,
                                     ?, ?, ?, ?, ?)
         '''
-        workers = [('arc_corp_1', 'DM送信 No.1（アークコーポレーション）', 'poyomaru555', 'ぽよまる', 'itsumono_pass', 'client動作テスト用',
-                    "c:/Users/bell/python/project/insta/chrome_profiles", "Profile 1", "Pixel 2",
-                    'dm_arc', f'{LAKE_ROOT_PATH}/dm_arc', 'apparel_arc', None,
-                    2, 20, None, None, None,
-                    1, 10, None, None, None)]
+        dolls = [('arc_corp_1', 'DM送信 No.1（アークコーポレーション）', 'poyomaru555', 'ぽよまる', 'itsumono_pass', 'client動作テスト用',
+                  "c:/Users/bell/python/project/insta/chrome_profiles", "Profile 1", "Pixel 2",
+                  'dm_arc', f'{LAKE_ROOT_PATH}/dm_arc', 'apparel_arc', None,
+                  2, 20, None, None, None,
+                  1, 10, None, None, None)]
 
         with self.conn:
-            self.conn.executemany(worker_settings, workers)
+            self.conn.executemany(doll_settings, dolls)
 
 
 if __name__ == '__main__':
@@ -158,10 +159,10 @@ if __name__ == '__main__':
     model.migrate()
 
 '''
-worker追加のサンプルSQL
-INSERT INTO worker_settings
+doll追加のサンプルSQL
+INSERT INTO doll_settings
 VALUES
-("nine_japan_3", "フォロー、アンフォロー、いいね", "poyomaru555", "ぽよまる", "itsumono_pass", "厚いクライアント", 
+("nine_japan_3", "フォロー、アンフォロー、いいね", "poyomaru555", "ぽよまる", "itsumono_pass", "厚いクライアント",
  "c:/Users/bell/python/project/insta/chrome_profiles", "Profile 2", "Pixel 2",
  "action_nj", "c/Users/bell/python/project/instagram/appium/lake/action_nj", "None", "None",
  0, 0, 20, 100, 20, 0, 0, 10, 50, 10);

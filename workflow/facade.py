@@ -10,9 +10,9 @@ class Facade():
     業務フローに依存したらadaptorではなくworkflowで管理
     '''
 
-    def __init__(self, worker_id):
-        # インスタンス生成でworkerの起動処理が走る
-        self.abilities = Abilities(worker_id)
+    def __init__(self, doll_id):
+        # インスタンス生成でdollの起動処理が走る
+        self.abilities = Abilities(doll_id)
 
         # 各フローの移譲先を取得
         self.following = Following(self.abilities)
