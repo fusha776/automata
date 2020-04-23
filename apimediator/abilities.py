@@ -14,6 +14,7 @@ from automata.adoptor.modal import Modal
 
 class Abilities():
     '''各画面制御のコア機能を統括するMediator相当のクラス
+    workerの起動処理もここで管理される
     '''
 
     def __init__(self, worker_id):
@@ -43,7 +44,18 @@ class Abilities():
         self.post = Post(self)
         self.modal = Modal(self)
 
+        # workerを起動中にする
+        self.dao.lock_worker_status()
+
         self.logger.debug(f'AUTOMATA is activated. - worker id: {self.worker_id}, login id: {self.login_id}')
+
+    def close(self):
+        '''workerの終了処理
+        '''
+        self.dao.unlock_worker_status()
+        self.logger.debug(f'AUTOMATA is terminated. worker_id: {self.worker_id}, login id: {self.login_id}')
+        self.driver.close()
+        self.driver.quit()
 
     def create_driver(self):
         options = webdriver.ChromeOptions()

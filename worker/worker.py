@@ -69,18 +69,12 @@ class Worker():
             if is_blocked:
                 self.abilities.dao.put_blocked_mark()
 
-            # URL が取得できないか試す
             # スクリーンショットを保存
-            # w = self.facade.abilities.driver.execute_script('return document.body.scrollWidth')
-            # h = self.facade.abilities.driver.execute_script('return document.body.scrollHeight')
-            # self.facade.abilities.driver.set_window_size(w, h)
             ss_dir = f'./log/{self.facade.abilities.worker_id}/screenshots'
             self.facade.abilities.driver.save_screenshot(f'{ss_dir}/screenshot_{datetime.now().strftime("%Y%m%d%H%M%S")}.png')
-        finally:
+
+            # htmlの保存（※保留中、動作が安定してきたら追加するかも）
             # with open('./page_source.log', 'w', encoding='utf8') as f:
             #     f.write(wf.pixel.driver.page_source)
-            worker_id = self.facade.abilities.worker_id
-            login_id = self.facade.abilities.login_id
-            self.facade.abilities.logger.debug(f'AUTOMATA is terminated. worker_id: {worker_id}, login id: {login_id}')
-            self.facade.abilities.driver.close()
-            self.facade.abilities.driver.quit()
+        finally:
+            self.facade.abilities.close()

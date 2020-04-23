@@ -22,9 +22,6 @@ class Dao():
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
 
-        # 起動ステータスを更新
-        self.update_worker_booted_time()
-
     def store_used_contents(self, content_path):
         '''使用済の投稿ファイルをbackupディレクトリへ送る
         実行した worker_id を判別用に持たせる
@@ -49,12 +46,22 @@ class Dao():
                             ''', (self.worker_id,))
         return self.cursor.fetchone()
 
-    def update_worker_booted_time(self):
-        '''worker の最終起動日と当日の起動回数を更新する
+    def read_worker_status(self):
+        '''workerの現在の起動状況を取得する
+        初回起動なら登録用レコードを登録してから返却する
         '''
+        def record_worker(last_booted_at):
+            with self.conn:
+                self.conn.execute('''
+                    INSERT OR REPLACE INTO worker_status
+                        (worker_id, last_booted_at, today_booted_times, is_running, is_blocked)
+                    VALUES
+                        (?, ?, 0, 0, 0)
+                    ''', (self.worker_id, last_booted_at))
+
         self.cursor.execute('''
             SELECT
-                last_booted_at, today_booted_times
+                last_booted_at, today_booted_times, is_running, is_blocked
             FROM
                 worker_status
             WHERE
@@ -62,11 +69,25 @@ class Dao():
             ''', (self.worker_id,))
         q_res = self.cursor.fetchone()
 
-        # 初回起動ならレコードをセット
+        # 初回起動ならレコードを登録
         if not q_res:
-            q_res = {'last_booted_at': datetime.now(), 'today_booted_times': 0}
+            q_res = {'last_booted_at': datetime.now(),
+                     'today_booted_times': 0,
+                     'is_running': 0,
+                     'is_blocked': 0}
+            record_worker(q_res['last_booted_at'])
+        return q_res
 
-        # 日付が変わったらリセットしてcount up
+    def lock_worker_status(self):
+        '''workerのステータスを起動中にする
+
+        * 起動ロック中にする（同時起動を止める）
+        * 最終起動日と当日の起動回数を更新する
+        * ブロック確認を解除する
+        '''
+        q_res = self.read_worker_status()
+
+        # 起動回数のcount up. 日付が変わっていたらリセット
         now_dt = datetime.now()
         booted_cnt = q_res['today_booted_times']
         if now_dt.day != q_res['last_booted_at'].day:
@@ -75,11 +96,29 @@ class Dao():
 
         with self.conn:
             self.conn.execute('''
-                INSERT OR REPLACE INTO worker_status
-                    (worker_id, last_booted_at, today_booted_times)
-                VALUES
-                    (?, ?, ?)
-                ''', (self.worker_id, now_dt, booted_cnt))
+                UPDATE
+                    worker_status
+                SET
+                    last_booted_at = ?,
+                    today_booted_times = ?,
+                    is_running = 1,
+                    is_blocked = 0
+                WHERE
+                    worker_id = ?
+                ''', (now_dt, booted_cnt, self.worker_id))
+
+    def unlock_worker_status(self):
+        '''workerのステータスを停止中にする
+        '''
+        with self.conn:
+            self.conn.execute('''
+                UPDATE
+                    worker_status
+                SET
+                    is_running = 0
+                WHERE
+                    worker_id = ?
+                ''', (self.worker_id,))
 
     def increase_action_count(self, cnts):
         '''アクションのカウントを進める

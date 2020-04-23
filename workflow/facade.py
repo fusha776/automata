@@ -11,6 +11,7 @@ class Facade():
     '''
 
     def __init__(self, worker_id):
+        # インスタンス生成でworkerの起動処理が走る
         self.abilities = Abilities(worker_id)
 
         # 各フローの移譲先を取得

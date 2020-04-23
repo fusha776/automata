@@ -101,6 +101,8 @@ class Model():
             worker_id TEXT,
             last_booted_at TIMESTAMP,
             today_booted_times INTEGER,
+            is_running INTEGER,
+            is_blocked INTEGER,
             PRIMARY KEY (worker_id)
         )'''
 
