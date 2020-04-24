@@ -4,7 +4,7 @@ from datetime import datetime
 from logging import getLogger, StreamHandler, FileHandler, Formatter, DEBUG
 from selenium import webdriver
 from automata.dao import Dao
-from automata.common.settings import CHROMEDRIVER_PATH, WAIT_SECONDS
+from automata.common.settings import CHROMEDRIVER_PATH, CHROME_CACHE_SIZE, WAIT_SECONDS
 from automata.common.utils import backup_ajax
 from automata.adoptor.web import Web
 from automata.adoptor.profile import Profile
@@ -60,7 +60,7 @@ class Abilities():
     def create_driver(self):
         options = webdriver.ChromeOptions()
         options.add_argument(f'--user-data-dir={self.doll_conf.browser_data_dir}')  # 同一のデータディレクトリは複数ブラウザで参照できない点に注意
-        options.add_argument(f'--profile-directory={self.doll_conf.profile_dir}')  # 省略するとDefaultフォルダが指定される
+        options.add_argument(f'--disk-cache-size={CHROME_CACHE_SIZE}')
         options.add_experimental_option('mobileEmulation', {'deviceName': self.doll_conf.device_name})
         driver = webdriver.Chrome(executable_path=CHROMEDRIVER_PATH, options=options)
         driver.implicitly_wait(WAIT_SECONDS)  # find_element等の最大待ち時間

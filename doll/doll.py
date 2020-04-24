@@ -1,6 +1,8 @@
+import json
 from time import sleep
 from datetime import datetime
 from automata.workflow.facade import Facade
+from automata.common.settings import DOLL_PARAMS_DIR
 # from automata.workflow.workflow import WorkFlow
 # from automata.common.exception import ActionBlockException
 
@@ -9,30 +11,35 @@ class Doll():
     '''アクションフローを制御するクラス
     '''
 
-    def __init__(self, doll_id, *args, **kwargs):
+    def __init__(self, doll_id):
         self.facade = Facade(doll_id=doll_id)
-        self.args = args
-        self.kwargs = kwargs
+        self.doll_id = doll_id
 
     def operate(self):
         '''各doll別のworkflow動作を設定する
         '''
         raise NotImplementedError
 
-    def select_doll_id(self):
-        '''当日のアクション状況と最終実行日時から以下を決定する
-        * 起動する doll_id
-        * 実行する各アクションの件数
+    def setup(self):
+        '''doll_id を参照してパラメータをセットする
+        ガチガチにファイル名規約が決まってるので注意
         '''
-        # TODO: 実装する
-        # 今は手打ちで流している、自動起動のタイミングで実装が必須になるはず
-        pass
+        with open(f'{DOLL_PARAMS_DIR}/{self.__class__.__name__}.json', 'r', encoding='utf8') as f:
+            self.params = json.load(f)[self.doll_id]
 
-    def create_doll(self, doll_id):
-        '''上記で選定されたdoll_id のdollを立ち上げる
-        このあたり、別のモジュールへ分けた方が良さそう
+    def check_chips_and_params(self):
+        '''JSON指定の login id が、起動した doll_settings の login id と一致しているか確認する
+        login id が変わった際にパラメータ変更が反映されていないエラーをチェック
+
+        パラメータもDB管理するためには動作が固まっている必要がありますが、
+        これはDollによって変動することが予想されるため、DB と JSON を併用して整合性チェックを入れます
         '''
-        pass
+        param_id = self.params['login_id']
+        db_id = self.facade.abilities.login_id
+        if param_id != db_id:
+            self.facade.abilities.logger.error(f'DB と JSON で Doll の login id 設定が不一致しました. JSON: {param_id}, DB: {db_id}')
+            return False
+        return True
 
     def check_action_blocked(self):
         '''アクションブロックの発生を確認する
@@ -56,10 +63,12 @@ class Doll():
         '''定義されたアクションを実行する
         '''
         try:
-            self.facade.switch_to_instagram_home()
-            sleep(3)
-            self.facade.abilities.modal.turn_on()
-            self.operate(*self.args, **self.kwargs)
+            self.setup()
+            if self.check_chips_and_params():
+                self.facade.switch_to_instagram_home()
+                sleep(3)
+                self.facade.abilities.modal.turn_on()
+                self.operate()
         except Exception:
             self.facade.abilities.logger.error('フロー実行中にエラーが発生', exc_info=True)
             self.facade.abilities.logger.debug(f'発生したページ: {self.facade.abilities.driver.current_url}')

@@ -59,6 +59,7 @@ class Model():
             browser_data_dir TEXT,
             profile_dir TEXT,
             device_name TEXT,
+            doll_class TEXT,
             doll_group TEXT,
             doll_group_lake_path TEXT,
             dm_message_id TEXT,

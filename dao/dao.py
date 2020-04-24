@@ -35,7 +35,7 @@ class Dao():
 
     def fetch_doll_settings(self):
         self.cursor.execute(''' SELECT
-                                    login_id, password, browser_data_dir, profile_dir, device_name,
+                                    login_id, password, browser_data_dir, profile_dir, device_name, doll_class,
                                     doll_group, doll_group_lake_path, dm_message_id, hashtag_group,
                                     post_per_day, dm_per_day, fav_per_day, follow_per_day, unfollow_per_day,
                                     post_per_boot, dm_per_boot, fav_per_boot, follow_per_boot, unfollow_per_boot
@@ -358,3 +358,28 @@ class Dao():
                 VALUES(?, ?, ?, ?);
                 ''', (self.doll_id, insta_id, is_private, datetime.now())
             )
+
+    def load_next_sleeping_doll(self):
+        '''起動条件を満たす停止中のdollから、最終起動時間が一番古いdollを呼び出す
+        要求action回数一応渡しているけど、現状Dollの具象クラスに埋め込みにしてる
+        '''
+
+        self.cursor.execute('''
+            SELECT
+                t1.doll_id,
+                t2.doll_class,
+                t2.fav_per_day,
+                t2.follow_per_day,
+                t2.unfollow_per_day,
+                t1.last_booted_at
+            FROM
+                doll_status t1
+                    LEFT JOIN doll_settings t2 ON t1.doll_id = t2.doll_id
+                    LEFT JOIN action_counters t3 ON t1.doll_id = t3.doll_id
+            WHERE
+                t1.is_running = 0 and
+                t2.fav_per_day + t2.follow_per_day + t2.unfollow_per_day > t3.fav + t3.follow + t3.unfollow
+            ORDER BY
+                t1.last_booted_at
+            ''')
+        return self.cursor.fetchone()
