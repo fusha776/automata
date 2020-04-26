@@ -41,6 +41,8 @@ WAIT_LOADING_SECONDS = 20
 # これ以上フォロワー数があるユーザを法人とみなす
 FOLLOWER_UPPER_LIMIT = 10000
 
+# フォロワー or フォロー中をロードする最大数（大きいとAPI制限の引っかかりやすさが跳ね上がる）
+LOADING_NEIGHBORS_LIMIT = 100
 
 ###############
 # フォロー管理 #

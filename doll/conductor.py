@@ -11,12 +11,14 @@ class Conductor():
     '''バッチの実行を受け付け、どのdollを実行するか管理するクラス
 
     Args:
-        test_mode (bool): True -> 起動条件を無視してdollを起動（テスト動作向け）
+        test_doll_id (str): 指定があれば、起動条件を無視して対象Dollを起動する
+        test_doll_chips (str): テストDoll用の実装クラス名
     '''
 
-    def __init__(self, test_mode=False):
+    def __init__(self, test_doll_id=None, test_doll_chips=None):
         self.today = datetime.now().strftime('%Y%m%d')
-        self.test_mode = test_mode
+        self.test_doll_id = test_doll_id
+        self.test_doll_chips = test_doll_chips
         self.ab = Abilities('conductor')
         self.ab.setup_master()
 
@@ -29,8 +31,8 @@ class Conductor():
         '''
         now_dt = datetime.now()
         doll = self.ab.dao.load_next_sleeping_doll()
-        if self.test_mode:
-            return doll['doll_id'], doll['doll_class']
+        if self.test_doll_id and self.test_doll_chips:
+            return self.test_doll_id, self.test_doll_chips
         # 起動条件を満たしていなければ終了
         if not doll:
             return None, None

@@ -54,3 +54,10 @@ XMLHttpRequest.prototype.send = function(){console.log('stopped ajax request', a
 window.jQuery=window.oldjQuery;window.$=window.jQuery;XMLHttpRequest.prototype.send=window.oSend
 ```
 
+# メモ
+
+### アクションブロック
+
+かなりすぐポップしてページ移動で消える  
+アクション後に確認させるか、ページ移動のタイミングで確認させるかだけど、
+アクション後の方が出入り口が絞られて良さそう

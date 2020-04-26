@@ -83,7 +83,6 @@ class Dao():
 
         * 起動ロック中にする（同時起動を止める）
         * 最終起動日と当日の起動回数を更新する
-        * ブロック確認を解除する
         '''
         q_res = self.read_doll_status()
 
@@ -101,8 +100,7 @@ class Dao():
                 SET
                     last_booted_at = ?,
                     today_booted_times = ?,
-                    is_running = 1,
-                    is_blocked = 0
+                    is_running = 1
                 WHERE
                     doll_id = ?
                 ''', (now_dt, booted_cnt, self.doll_id))
@@ -321,6 +319,7 @@ class Dao():
 
         # アクションブロックフラグを付与
         with self.conn:
+            # アクション集計
             self.conn.execute('''
                 UPDATE
                     action_counters
@@ -330,6 +329,16 @@ class Dao():
                     doll_id = ? and
                     operated_on = ?
             ''', (self.doll_id, self.today))
+
+            # Doll ステータス
+            self.conn.execute('''
+                UPDATE
+                    doll_status
+                SET
+                    is_blocked = 1
+                WHERE
+                    doll_id = ?
+            ''', (self.doll_id,))
 
     def load_recent_touched_users(self, size=CACHED_TOUCHED_USER_SIZE):
         '''直近で何らかのアクションを取ったアカを取得する

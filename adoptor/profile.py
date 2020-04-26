@@ -1,6 +1,7 @@
 from time import sleep
 from automata.common.utils import wait, loading
 from automata.common.utils import close_ajax, reopen_ajax
+from automata.common.settings import LOADING_NEIGHBORS_LIMIT
 
 
 class Profile():
@@ -24,6 +25,11 @@ class Profile():
         Args:
             insta_id (str): インスタグラムID
         '''
+        # 何回もdictを参照させて失敗してるから、チェック機構を入れよう
+        if type(insta_id) is not str:
+            self.mediator.logger.error(f'文字列ではないURLが参照されました: {insta_id}')
+            raise Exception
+
         self.driver.get(f'https://www.instagram.com/{insta_id}/')
         # if self.driver.find_elements_by_xpath('//*[contains(text(), "このページはご利用いただけません")]'):
         #     return False
@@ -38,6 +44,11 @@ class Profile():
         Conditions:
             [プロフィール]
         '''
+        # 何回もdictを参照させて失敗してるから、チェック機構を入れよう
+        if type(insta_id) is not str:
+            self.mediator.logger.error(f'文字列ではないURLが参照されました: {insta_id}')
+            raise Exception
+
         following_btn = self.driver.find_element_by_xpath(f'//a[@href="/{insta_id}/following/"]')
         following_btn.click()
 
@@ -50,6 +61,11 @@ class Profile():
         Conditions:
             [プロフィール]
         '''
+        # 何回もdictを参照させて失敗してるから、チェック機構を入れよう
+        if type(insta_id) is not str:
+            self.mediator.logger.error(f'文字列ではないURLが参照されました: {insta_id}')
+            raise Exception
+
         following_btn = self.driver.find_element_by_xpath(f'//a[@href="/{insta_id}/followers/"]')
         following_btn.click()
 
@@ -158,7 +174,7 @@ class Profile():
         return True
 
     @loading
-    def read_neighbor_datasets_on_order(self, min_rec_size, checked, retry_cnt=5):
+    def read_neighbor_datasets_on_order(self, min_rec_size, checked, retry_cnt=5, loading_limit=LOADING_NEIGHBORS_LIMIT):
         '''指定サイズを超えるまでユーザリストを取得し続ける
 
         WARN:
@@ -168,6 +184,7 @@ class Profile():
             min_rec_size (int): 最低限ほしいユーザリストの件数
             checked (set): 取得対象外にするインスタID
             retry_cnt (int): 新規アカが画面ロードされなくても待つリトライ回数 ※離脱条件にも使うので変な値を入れてはいけない
+            loading_limit (int): ロードする最大アカウント数. min_rec_size より優先される.
         '''
         waiting_cnt = 0
         next_row = 0
@@ -215,7 +232,7 @@ class Profile():
                 self.mediator.logger.debug(f'未タッチユーザリスト now loading: 取得済 -> {len(new_userlists)}, 画面全体 -> {len(users)}')
 
             if need_to_reload:
-                if (len(users) >= len(checked) + 2 * min_rec_size) or (len(new_userlists) >= min_rec_size):
+                if (len(users) >= loading_limit) or (len(new_userlists) >= min_rec_size):
                     # 始めて必要数確保できたら、画面ロードを止めて表示された分だけついでに回収する
                     close_ajax(self.driver)
                     reopen_ajax(self.driver)

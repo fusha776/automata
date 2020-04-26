@@ -1,4 +1,4 @@
-from random import random, shuffle
+import random
 from math import ceil
 from automata.common.settings import FOLLOWER_UPPER_LIMIT
 
@@ -10,8 +10,8 @@ class Following():
     def __init__(self, abilities):
         self.ab = abilities
 
-    def load_my_followers_as_userlist(self, rec_size=50):
-        '''自分のフォロワーからユーザリストを生成
+    def load_followers_as_userlist(self, target_id, rec_size=50):
+        '''対象ユーザのフォロワーからユーザリストを生成
 
         Args:
             rec_size (int): 取得するアカの数
@@ -19,8 +19,8 @@ class Following():
         Returns:
             dict[]: key -> {'insta_id', 'follow_msg'}
         '''
-        self.ab.profile.switch_to_user_profile(self.ab.login_id)
-        self.ab.profile.switch_to_following(self.ab.login_id)
+        self.ab.profile.switch_to_user_profile(target_id)
+        self.ab.profile.switch_to_following(target_id)
 
         # ユーザセットを取得する
         raw_userlists = self.ab.profile.read_neighbor_datasets_on_order(rec_size, set())
@@ -32,16 +32,17 @@ class Following():
             userlists.append(dict_i)
 
         # 上の方は何回も呼ばれるため、順番をシャッフルして返却
-        shuffle(userlists)
+        random.shuffle(userlists)
         return userlists
 
     def follow_friends_neighbors(self, actions, my_friends=None, fav_rate=0.7, max_user_times=50):
-        '''指定ユーザの フォロワー or フォロー中 をフォローする（ややこしい）
-        指定 (my_friends) がなければ、自分のフォロー中から選択
+        '''指定アカの フォロワー の フォロー中 をフォローする（ややこしい）
+        指定 (my_friends) がある: 指定アカの フォロー中アカの フォロワー へアクション
+        指定 (my_friends) がない: 自アカの フォロー中アカの フォロワー へアクション
 
         Args:
             actions (int): 実行する action の回数
-            my_friends (dict[]): フォロー中を探索してアクション対象を見つける元ユーザのリスト
+            my_friends (dict[]): フォロワーの探索を開始する元ユーザのリスト
             fav_rate (float): フォローの代わりにfavする確率
             max_user_times (int): 自分のフォロワーを探索する最大回数（エラーループ防止）
 
@@ -70,14 +71,15 @@ class Following():
         checked.update(skipped_follow)
         checked.update(skipped_touch)
 
-        # 渡されなかったらユーザリストを取得
-        users_at_least = 1  # friend指定があれば1ユーザでok
-        if not my_friends:
-            my_friends = self.load_my_followers_as_userlist(max_user_times)
-            users_at_least = 2  # 渡されなければ、リスク分散のために少なくとも2ユーザを辿る
+        # friendが渡されていれば、フォロワーを辿る開始IDをランダムに採用する
+        starting_login_id = self.ab.login_id
+        if my_friends:
+            starting_login_id = random.choice(my_friends)['insta_id']
+        starting_neighbors = self.load_followers_as_userlist(starting_login_id, max_user_times)
+        users_at_least = 3  # 渡されなければ、リスク分散のために少なくとも3ユーザを辿る
 
         cnt = 0
-        for user_i in my_friends[:max_user_times]:
+        for user_i in starting_neighbors[:max_user_times]:
             if cnt >= actions:
                 self.ab.logger.debug(f'必要分のアクションが完了:  稼働アクション数:{cnt} > 要求アクション数:{actions}')
                 break
@@ -165,7 +167,7 @@ class Following():
                 int: favした数
             '''
             links = self.ab.profile.get_post_links()
-            shuffle(links)
+            random.shuffle(links)
             fav_cnt = 0
             for link in links[:max_fav_cnt]:
                 self.ab.driver.get(link)
@@ -181,7 +183,7 @@ class Following():
         new_users_dataset = self.ab.profile.read_neighbor_datasets_on_order(actions, checked)
 
         # とりあえずランダム化する（上の方は相互フォローが固まってる可能性がある）
-        shuffle(new_users_dataset)
+        random.shuffle(new_users_dataset)
 
         for user_i in new_users_dataset:
             insta_id_i = user_i['insta_id']
@@ -214,7 +216,7 @@ class Following():
                 continue
 
             # 同一アクションの連続はブロックの危険があがるので、ランダムでアクションを変える
-            if random() < fav_rate:
+            if random.random() < fav_rate:
                 # ファボをトライする
                 new_fav_cnt = try_to_fav()
                 fav_cnt += new_fav_cnt
