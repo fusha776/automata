@@ -1,40 +1,45 @@
 from datetime import datetime
 from automata.dao.dao import Dao
+from automata.doll.collector import Collector
 from automata.common.settings import HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO, BOOTING_INTERVAL_SECONDS
 
+# 文字列 -> クラス の取得で使用しています
 from automata.doll.nine_japan import NineJapan
 
 
 class Conductor():
     '''バッチの実行を受け付け、どのdollを実行するか管理するクラス
+
+    Args:
+        test_mode (bool): True -> 起動条件を無視してdollを起動（テスト動作向け）
     '''
 
-    def __init__(self):
-        self.now_dt = datetime.now()
-        self.dao = Dao('root', self.now_dt.strftime('%Y%m%d'))
-        self.doll_id, class_name = self.select_doll()
-        self.os_chip = self.load_dolls_os_chip(class_name)
-        self.dao.conn.close()
+    def __init__(self, test_mode=False):
+        self.today = datetime.now().strftime('%Y%m%d')
+        self.test_mode = test_mode
 
-    def select_doll(self):
+    def select_doll(self, dao):
         '''一時的にDBへつなぎ、当日のアクション状況と最終実行日時から起動するdollを決定する
 
         TODO:
             フェイルセーフ的に一定時間以上経過してたら無理やり起動させてみたいけど、
             いったん保留にしておく（この場合、cron側の長時間稼働kill設定と合わせる必要がある）
         '''
-        doll = self.dao.load_next_sleeping_doll()
+        now_dt = datetime.now()
+        doll = dao.load_next_sleeping_doll()
+        if self.test_mode:
+            return doll['doll_id'], doll['doll_class']
         # 起動条件を満たしていなければ終了
         if not doll:
             return None, None
-        # if HOUR_SLEEPING_FROM <= self.now_dt.hour <= HOUR_SLEEPING_TO:
-        #     return None, None
-        # if (self.now_dt - doll['last_booted_at']).seconds < BOOTING_INTERVAL_SECONDS:
-        #     return None, None
+        if HOUR_SLEEPING_FROM <= now_dt.hour <= HOUR_SLEEPING_TO:
+            return None, None
+        if (now_dt - doll['last_booted_at']).seconds < BOOTING_INTERVAL_SECONDS:
+            return None, None
         return doll['doll_id'], doll['doll_class']
 
     def load_dolls_os_chip(self, class_name):
-        '''一時的にDBへつなぎ、dollのクラスを取得する
+        '''dollのクラスを取得する
         '''
         return globals()[class_name] if class_name else None
 
@@ -42,7 +47,30 @@ class Conductor():
         '''dollを起動して実行する
         actionの要求回数はいったんDoll JSON で管理
         '''
-        if self.doll_id:
-            self.os_chip(self.doll_id).run()
+        dao = Dao('root', self.today)
+        doll_id, class_name = self.select_doll(dao)
+        dao.conn.close()
+
+        if doll_id:
+            os_chip = self.load_dolls_os_chip(class_name)
+            os_chip(doll_id).run()
         else:
             print('no doll is made activated.')
+
+    def count_results(self):
+        '''所定の時間になったら、当日のリザルトを集計する
+        '''
+        now_dt = datetime.now()
+        # 活動時間ならskip
+        if not (HOUR_SLEEPING_FROM <= now_dt.hour <= HOUR_SLEEPING_TO):
+            return
+
+        # アクションを集計
+        collector = Collector(self.today)
+        collector.save_action_results()
+
+    def execute(self):
+        '''dollの生成と結果カウントを実行する
+        '''
+        self.activate_doll()
+        self.count_results()

@@ -53,9 +53,10 @@ class Abilities():
         '''dollの終了処理
         '''
         self.dao.unlock_doll_status()
-        self.logger.debug(f'AUTOMATA is terminated. doll_id: {self.doll_id}, login id: {self.login_id}')
+        self.dao.conn.close()
         self.driver.close()
         self.driver.quit()
+        self.logger.debug(f'AUTOMATA is terminated. doll_id: {self.doll_id}, login id: {self.login_id}')
 
     def create_driver(self):
         options = webdriver.ChromeOptions()

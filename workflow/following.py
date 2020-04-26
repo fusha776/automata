@@ -71,10 +71,10 @@ class Following():
         checked.update(skipped_touch)
 
         # 渡されなかったらユーザリストを取得
-        users_at_least = 2  # リスク分散のために通常は少なくとも2ユーザを辿る
+        users_at_least = 1  # friend指定があれば1ユーザでok
         if not my_friends:
             my_friends = self.load_my_followers_as_userlist(max_user_times)
-            users_at_least = 1  # friend指定があれば1ユーザでok
+            users_at_least = 2  # 渡されなければ、リスク分散のために少なくとも2ユーザを辿る
 
         cnt = 0
         for user_i in my_friends[:max_user_times]:

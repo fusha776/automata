@@ -1,7 +1,10 @@
+import os
 import json
+import pathlib
 from time import sleep
 from datetime import datetime
 from automata.workflow.facade import Facade
+from automata.dao.dao import Dao
 from automata.common.settings import DOLL_PARAMS_DIR
 # from automata.workflow.workflow import WorkFlow
 # from automata.common.exception import ActionBlockException
@@ -12,7 +15,6 @@ class Doll():
     '''
 
     def __init__(self, doll_id):
-        self.facade = Facade(doll_id=doll_id)
         self.doll_id = doll_id
 
     def operate(self):
@@ -21,9 +23,14 @@ class Doll():
         raise NotImplementedError
 
     def setup(self):
-        '''doll_id を参照してパラメータをセットする
-        ガチガチにファイル名規約が決まってるので注意
+        '''doll_id を参照して以下をセットする
+        * Abilityの生成
+        * JSONパラメータのロード
+
+        パラメータ読み込みはガチガチにファイル名規約が決まってるので注意
         '''
+        self.facade = Facade(doll_id=self.doll_id)
+
         with open(f'{DOLL_PARAMS_DIR}/{self.__class__.__name__}.json', 'r', encoding='utf8') as f:
             self.params = json.load(f)[self.doll_id]
 
@@ -87,3 +94,33 @@ class Doll():
             #     f.write(wf.pixel.driver.page_source)
         finally:
             self.facade.abilities.close()
+
+    @classmethod
+    def save_results(cls, target_day, doll_group):
+        '''アクションの集計を出力する
+        '''
+        dao = Dao('batch', target_day)
+        actions = dao.load_daily_action_results(doll_group, target_day)
+        msg = cls.format(target_day, actions)
+
+        pathlib.Path(f'./results/{target_day}').mkdir(parents=True, exist_ok=True)
+        result_path = f'./results/{target_day}/{doll_group}_{target_day}.txt'
+        if not os.path.exists(result_path):
+            with open(result_path, 'w', encoding='utf8') as f:
+                f.write(msg)
+                print('result is saved.')
+        else:
+            print('result was already saved.')
+        dao.conn.close()
+
+    @classmethod
+    def format(cls, target_day, doll_records):
+        '''レコードを出力テキストへ整形する
+
+        Args:
+            doll_records (Row[]): アクションが集計されたdoll毎のレコード. 取得できるカラムは以下.
+
+            login_id,　label, client, doll_group,
+            post, dm, fav, follow, unfollow, others, summary_cnt, is_blocked}
+        '''
+        raise NotImplementedError
