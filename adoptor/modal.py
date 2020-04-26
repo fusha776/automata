@@ -96,3 +96,11 @@ class Modal():
             self.mediator.dao.put_blocked_mark()
             self.mediator.logger.error('アクションブロックを検知. 起動停止します.')
             raise Exception
+
+    @loading
+    @wait
+    def press_logout(self):
+        '''ログアウトボタンを押す
+        '''
+        logout_btn = self.driver.find_element_by_xpath('.//button[contains(text(), "ログアウト")]')
+        logout_btn.click()
