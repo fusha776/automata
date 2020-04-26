@@ -90,6 +90,9 @@ class Profile():
             el.click()
             has_followed = True
 
+        # アクションブロック確認を、アクション更新前に入れる
+        self.mediator.modal.check_action_block()
+
         # アクション更新
         if has_followed:
             # ステータスを更新
@@ -119,6 +122,9 @@ class Profile():
         if el:
             el.click()
             has_followed = True
+
+        # アクションブロック確認を、アクション更新前に入れる
+        self.mediator.modal.check_action_block()
 
         # アクション更新
         if has_followed:
@@ -169,11 +175,16 @@ class Profile():
             self.mediator.logger.debug(f'アクション unfollow: 要素の取得失敗 or リクエスト中 のためskip: {insta_id}')
             return False
 
+        # アクションブロック確認を、アクション更新前に入れる
+        self.mediator.modal.check_action_block()
+
+        # アクション更新
         self.mediator.dao.delete_following(insta_id)
         self.mediator.dao.increase_action_count({'unfollow': 1})
         return True
 
     @loading
+    @wait
     def read_neighbor_datasets_on_order(self, min_rec_size, checked, retry_cnt=5, loading_limit=LOADING_NEIGHBORS_LIMIT):
         '''指定サイズを超えるまでユーザリストを取得し続ける
 

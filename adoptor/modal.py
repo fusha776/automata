@@ -18,7 +18,7 @@ class Modal():
         '''
         if self.check_dialog():
             self.turn_on_home_shortcut()
-            self.turn_on_notice()
+            self.turn_off_notice()
 
     @loading
     @wait
@@ -41,7 +41,7 @@ class Modal():
         on_btn.click()
 
     @loading
-    def turn_on_notice(self):
+    def turn_off_notice(self):
         '''[お知らせをオンにする] をオフにする
 
         ブラウザの許可が追加で必要になって、ちょっと難しそうだから「後で」を選択し続ける方がいいかも
@@ -82,3 +82,17 @@ class Modal():
         if is_private_1 or is_private_2:
             return True
         return False
+
+    @loading
+    @wait
+    def check_action_block(self):
+        '''アクションブロックを確認し、該当していたらエラーを発生させる
+
+        アクション実行後、該当する場合はかなりすぐにポップします
+        またページ移動で消えるため、アクション実行後に毎回呼び出すのが良さそうです
+        '''
+        block_dialog = self.driver.find_elements_by_xpath('//*[contains(text(), "ブロックされています")]')
+        if block_dialog:
+            self.mediator.dao.put_blocked_mark()
+            self.mediator.logger.error('アクションブロックを検知. 起動停止します.')
+            raise Exception

@@ -30,9 +30,13 @@ class Post():
             return False
 
         fav_btn = self.driver.find_elements_by_xpath('//section/span/button/*[contains(@aria-label, "いいね")]')
-        if fav_btn:
-            fav_btn[0].click()
-            # アクション回数を更新
-            self.mediator.dao.increase_action_count({'fav': 1})
-            return True
-        return False
+        if not fav_btn:
+            return False
+        fav_btn[0].click()
+
+        # アクションブロック確認を、アクション更新前に入れる
+        self.mediator.modal.check_action_block()
+
+        # アクション回数を更新
+        self.mediator.dao.increase_action_count({'fav': 1})
+        return True

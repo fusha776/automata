@@ -47,24 +47,6 @@ class Doll():
             return False
         return True
 
-    def check_action_blocked(self):
-        '''アクションブロックの発生を確認する
-        ブロックのサンプルが得られるまで暫定的
-
-        Returns:
-            bool: アクションブロック中 -> True
-        '''
-        is_blocked = False
-        el = self.facade.abilities.driver.find_elements_by_xpath('//*[contains(text(), "ブロック")]')
-        if el:
-            # body = self.wf.pixel.driver.find_elements_by_id('com.instagram.android:id/dialog_body') もう一度要素確認したい
-            self.facade.abilities.logger.debug(f'アクションのブロックを検知 {self.wf.doll_id}: {el[0].text}.')
-            is_blocked = True
-        else:
-            if len(el) >= 1:
-                self.facade.abilities.logger.debug(f'アクションブロック以外の理由でダイアログ付エラーが発生. メッセージ: {el[0].text}')
-        return is_blocked
-
     def run(self):
         '''定義されたアクションを実行する
         '''
@@ -78,11 +60,6 @@ class Doll():
         except Exception:
             self.facade.abilities.logger.error('フロー実行中にエラーが発生', exc_info=True)
             self.facade.abilities.logger.debug(f'発生したページ: {self.facade.abilities.driver.current_url}')
-
-            # 垢ブロックチェック
-            is_blocked = self.check_action_blocked()
-            if is_blocked:
-                self.abilities.dao.put_blocked_mark()
 
             # スクリーンショットを保存
             ss_dir = f'./log/{self.facade.abilities.doll_id}/screenshots'
