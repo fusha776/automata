@@ -10,7 +10,7 @@ class Profile():
     def __init__(self, mediator):
         self.mediator = mediator
         self.driver = self.mediator.driver
-        self.login_id = self.mediator.worker_conf.login_id
+        self.login_id = self.mediator.doll_conf.login_id
 
     @loading
     @wait
@@ -145,6 +145,9 @@ class Profile():
         elif self.pick_followback_btn():
             # フォローバックボタンが見つかった場合： 相手先から解除された？
             self.mediator.logger.debug(f'アクション unfollow: 削除された？（フォローバックボタンを確認）. フォロー中リストから削除: {insta_id}')
+        elif self.is_deleted_page:
+            # アカウント削除済み
+            self.mediator.logger.debug(f'アクション unfollow: アカ削除済み. フォロー中リストから削除: {insta_id}')
         else:
             # その他： 理由不明。画面呼び出しの失敗 or リクエスト中？
             self.mediator.logger.debug(f'アクション unfollow: 要素の取得失敗 or リクエスト中 のためskip: {insta_id}')
@@ -310,7 +313,7 @@ class Profile():
     def pick_follow_btn(self):
         '''フォローボタンを取得する
 
-        Return:
+        Returns:
             element: フォローボタンのelement
 
         Conditions:
@@ -326,7 +329,7 @@ class Profile():
     def pick_followback_btn(self):
         '''フォローバックボタンを取得する
 
-        Return:
+        Returns:
             element: フォローバックボタンのelement
 
         Conditions:
@@ -342,7 +345,7 @@ class Profile():
     def pick_unfollow_btn(self):
         '''アンフォローボタンを取得する
 
-        Return:
+        Returns:
             element: アンフォローボタンのelement
 
         Conditions:
@@ -353,6 +356,19 @@ class Profile():
         if fbtn_base:
             res = fbtn_base[0].find_elements_by_xpath('.//span[contains(@aria-label, "フォロー中")]')
         return res[0] if res else None
+
+    @loading
+    def is_deleted_page(self):
+        '''削除済みページかチェックする
+
+        Returns:
+            bool: 削除済み -> True
+
+        Conditions:
+            [プロフィール]
+        '''
+        deleted_msg = self.driver.find_elements_by_xpath('//*[contains(@text(), "このページはご利用いただけません")]')
+        return bool(deleted_msg)
 
     @loading
     def get_post_links(self, max_size=10):

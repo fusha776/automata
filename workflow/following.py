@@ -71,8 +71,10 @@ class Following():
         checked.update(skipped_touch)
 
         # 渡されなかったらユーザリストを取得
+        users_at_least = 1  # friend指定があれば1ユーザでok
         if not my_friends:
             my_friends = self.load_my_followers_as_userlist(max_user_times)
+            users_at_least = 2  # 渡されなければ、リスク分散のために少なくとも2ユーザを辿る
 
         cnt = 0
         for user_i in my_friends[:max_user_times]:
@@ -91,10 +93,10 @@ class Following():
             self.ab.profile.switch_to_followers(user_i['insta_id'])
 
             # 一人のフォロワーから辿れるアクション数に最大値を設定する
-            self.ab.logger.debug(f'フォロワーの探索を開始: {user_i["insta_id"]} アクション残: {cnt}/{actions}')
-            actions_in_this_user = min(ceil(actions / 2), actions - cnt)
+            actions_in_this_user = min(ceil(actions / users_at_least), actions - cnt)
 
             # [フォロー中 or フォロワー] に表示されているユーザに対してアクションを仕込む
+            self.ab.logger.debug(f'フォロワーの探索を開始: {user_i["insta_id"]} アクション残: {cnt}/{actions}')
             followed_cnt, fav_cnt, memo = self._follow_in_neighbors(actions_in_this_user, checked, fav_rate)
             cnt += (followed_cnt + fav_cnt)
             checked.update(memo)

@@ -1,10 +1,12 @@
-#################
-# Chrome Driver #
-#################
+##########
+# Chrome #
+##########
 
 # chrome webdriver のパス
 CHROMEDRIVER_PATH = 'c:/Users/bell/python/project/insta/driver/chromedriver.exe'
 
+# ブラウザのキャッシュサイズ. 大きすぎるとDisk容量を食べる
+CHROME_CACHE_SIZE = 52428800
 
 ######
 # DB #
@@ -17,9 +19,9 @@ DATABASE_PATH = 'c:/Users/bell/python/project/insta/storage/tables/automata_db.s
 LAKE_ROOT_PATH = 'c:/Users/bell/python/project/instagram/appium/lake'
 
 
-###########
-# 動作制御 #
-###########
+###############
+# 画面動作制御 #
+###############
 
 # 次の動作までの停止時間の目安（秒）
 #
@@ -54,3 +56,21 @@ FLLOWING_ALIVE_DAYS = 5
 CACHED_TOUCHED_USER_SIZE = 5000
 
 NG_USER_SIZE = 1000  # 廃止予定
+
+
+###########
+# 起動制御 #
+###########
+
+# automataの起動停止時間帯（ブロック回避）
+# from <= hour <= to 形式
+HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO = 16, 23
+
+# 起動間隔を空ける時間（秒）
+BOOTING_INTERVAL_SECONDS = 60 * 60 * 3
+
+# パラメータjsonが格納されたディレクトリ
+DOLL_PARAMS_DIR = 'c:/Users/bell/python/project/insta/doll_params'
+
+# Dollの最大並列数（sqlite3のDeadLock や Instagramのブロック回避 で念のため）
+DOLLS_PARALLEL_LIMIT = 5
