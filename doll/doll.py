@@ -22,11 +22,11 @@ class Doll():
         raise NotImplementedError
 
     def setup(self):
-        '''doll_id を参照して以下をセットする
+        '''doll_id を参照してDollを起動する
         * Abilityの生成
         * JSONパラメータのロード
 
-        パラメータ読み込みはガチガチにファイル名規約が決まってるので注意
+        パラメータファイルは `実装class名.json` でガチガチに命名規約が決まってるので注意
         '''
         self.facade = Facade(doll_id=self.doll_id)
 
@@ -47,42 +47,24 @@ class Doll():
             return False
         return True
 
-    def check_action_blocked(self):
-        '''アクションブロックの発生を確認する
-        ブロックのサンプルが得られるまで暫定的
-
-        Returns:
-            bool: アクションブロック中 -> True
-        '''
-        is_blocked = False
-        el = self.facade.abilities.driver.find_elements_by_xpath('//*[contains(text(), "ブロック")]')
-        if el:
-            # body = self.wf.pixel.driver.find_elements_by_id('com.instagram.android:id/dialog_body') もう一度要素確認したい
-            self.facade.abilities.logger.debug(f'アクションのブロックを検知 {self.wf.doll_id}: {el[0].text}.')
-            is_blocked = True
-        else:
-            if len(el) >= 1:
-                self.facade.abilities.logger.debug(f'アクションブロック以外の理由でダイアログ付エラーが発生. メッセージ: {el[0].text}')
-        return is_blocked
-
     def run(self):
         '''定義されたアクションを実行する
         '''
         try:
             self.setup()
             if self.check_chips_and_params():
+                # Instagram Home へ移動
                 self.facade.switch_to_instagram_home()
-                sleep(3)
                 self.facade.abilities.modal.turn_on()
+
+                # 前日ブロック中なら再ログインする
+                self.check_block_status()
+
+                # 処理を開始
                 self.operate()
         except Exception:
             self.facade.abilities.logger.error('フロー実行中にエラーが発生', exc_info=True)
             self.facade.abilities.logger.debug(f'発生したページ: {self.facade.abilities.driver.current_url}')
-
-            # 垢ブロックチェック
-            is_blocked = self.check_action_blocked()
-            if is_blocked:
-                self.abilities.dao.put_blocked_mark()
 
             # スクリーンショットを保存
             ss_dir = f'./log/{self.facade.abilities.doll_id}/screenshots'
@@ -93,6 +75,28 @@ class Doll():
             #     f.write(wf.pixel.driver.page_source)
         finally:
             self.facade.abilities.close()
+
+    def check_block_status(self):
+        '''前日ブロックだったら再ログインする
+        '''
+        is_blocked = self.facade.abilities.dao.load_block_status()['is_blocked']  # bool(1) -> True
+        if is_blocked:
+            self._relogin()
+
+    def _relogin(self):
+        '''ブロック状態のリセットのため、ログアウト - ログイン を行う
+        '''
+        # ログアウト
+        # たまに失敗するみたいだけど理由不明.
+        # ブラウザキャッシュを消して対処した方が良いかも、でもそれだと多重ログインでブロックされやすくなるかも
+        self.facade.abilities.profile.switch_to_user_profile(self.facade.abilities.login_id)
+        self.facade.abilities.profile.logout()
+
+        # 再ログイン
+        self.facade.switch_to_instagram_home()
+
+        # ここまで成功したらDB更新
+        self.facade.abilities.dao.reset_blocked_mark()
 
     @classmethod
     def save_results(cls, dao, logger, target_day, doll_group):

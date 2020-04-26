@@ -48,7 +48,6 @@ class Web():
         pw_input = self.driver.find_element_by_xpath('//input[contains(@type, "password")]')
         pw_input.send_keys(self.password)
 
-        xpath_login_btn = '//button[contains(@type, "submit")]'
         login_btn = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
-            EC.element_to_be_clickable((By.XPATH, xpath_login_btn)))
+            EC.element_to_be_clickable((By.XPATH, '//button[contains(@type, "submit")]')))
         login_btn.click()

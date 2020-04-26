@@ -1,3 +1,4 @@
+from time import sleep
 from automata.apimediator.abilities import Abilities
 from automata.workflow.following import Following
 from automata.workflow.unfollowing import Unfollowing
@@ -21,3 +22,4 @@ class Facade():
 
     def switch_to_instagram_home(self):
         self.abilities.web.switch_to_instagram_home()
+        sleep(3)

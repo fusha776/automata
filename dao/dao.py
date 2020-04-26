@@ -118,6 +118,22 @@ class Dao():
                     doll_id = ?
                 ''', (self.doll_id,))
 
+    def update_last_booted_dt(self, target_doll_id):
+        '''最終起動日時を更新する
+
+        Args:
+            target_doll_id (str): 対象のDoll ID
+        '''
+        with self.conn:
+            self.conn.execute('''
+                UPDATE
+                    doll_status
+                SET
+                    last_booted_at = ?
+                WHERE
+                    doll_id = ?
+                ''', (datetime.now(), target_doll_id))
+
     def increase_action_count(self, cnts):
         '''アクションのカウントを進める
         '''
@@ -380,7 +396,8 @@ class Dao():
                 t2.fav_per_day,
                 t2.follow_per_day,
                 t2.unfollow_per_day,
-                t1.last_booted_at
+                t1.last_booted_at,
+                t1.is_blocked
             FROM
                 doll_status t1
                     LEFT JOIN doll_settings t2 ON t1.doll_id = t2.doll_id
@@ -404,3 +421,28 @@ class Dao():
                                     is_running = 1
                             ''')
         return self.cursor.fetchall()
+
+    def load_block_status(self):
+        '''Dollのブロック状態を取得する
+        '''
+        self.cursor.execute(''' SELECT
+                                    is_blocked
+                                FROM
+                                    doll_status
+                                WHERE
+                                    doll_id = ?
+                            ''', (self.doll_id,))
+        return self.cursor.fetchone()
+
+    def reset_blocked_mark(self):
+        '''DBの論理blockを解除して起動可能ステータスにする
+        '''
+        with self.conn:
+            self.conn.execute('''
+                UPDATE
+                    doll_status
+                SET
+                    is_blocked = 0
+                WHERE
+                    doll_id = ?
+            ''', (self.doll_id,))

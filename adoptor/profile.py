@@ -1,7 +1,12 @@
 from time import sleep
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from automata.common.utils import wait, loading
 from automata.common.utils import close_ajax, reopen_ajax
 from automata.common.settings import LOADING_NEIGHBORS_LIMIT
+from automata.common.settings import WAIT_LOADING_SECONDS
 
 
 class Profile():
@@ -90,6 +95,9 @@ class Profile():
             el.click()
             has_followed = True
 
+        # アクションブロック確認を、アクション更新前に入れる
+        self.mediator.modal.check_action_block()
+
         # アクション更新
         if has_followed:
             # ステータスを更新
@@ -119,6 +127,9 @@ class Profile():
         if el:
             el.click()
             has_followed = True
+
+        # アクションブロック確認を、アクション更新前に入れる
+        self.mediator.modal.check_action_block()
 
         # アクション更新
         if has_followed:
@@ -169,11 +180,16 @@ class Profile():
             self.mediator.logger.debug(f'アクション unfollow: 要素の取得失敗 or リクエスト中 のためskip: {insta_id}')
             return False
 
+        # アクションブロック確認を、アクション更新前に入れる
+        self.mediator.modal.check_action_block()
+
+        # アクション更新
         self.mediator.dao.delete_following(insta_id)
         self.mediator.dao.increase_action_count({'unfollow': 1})
         return True
 
     @loading
+    @wait
     def read_neighbor_datasets_on_order(self, min_rec_size, checked, retry_cnt=5, loading_limit=LOADING_NEIGHBORS_LIMIT):
         '''指定サイズを超えるまでユーザリストを取得し続ける
 
@@ -402,3 +418,25 @@ class Profile():
             href = photo.get_attribute('href')
             links.append(href)
         return links
+
+    @loading
+    def logout(self):
+        '''ログアウトする
+        '''
+        # オプションを表示
+        opt_btn = self.driver.find_element_by_xpath('.//*[contains(@aria-label, "オプション")]')
+        opt_btn.click()
+
+        # ログアウトダイアログを表示
+        logout_btn = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
+            EC.element_to_be_clickable((By.XPATH, '//*[contains(text(), "ログアウト")]')))
+
+        # 画面をスクロールしてからクリック
+        self.driver.find_element_by_tag_name('body').send_keys(Keys.END)
+        logout_btn.click()
+
+        # ログアウトボタンを押す
+        self.mediator.modal.press_logout()
+
+        # jsの処理を待つ休憩（ページ遷移まで待つ、が正解なんだろうけれどもとりあえず）
+        sleep(6)
