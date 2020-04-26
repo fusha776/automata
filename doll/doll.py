@@ -4,7 +4,6 @@ import pathlib
 from time import sleep
 from datetime import datetime
 from automata.workflow.facade import Facade
-from automata.dao.dao import Dao
 from automata.common.settings import DOLL_PARAMS_DIR
 # from automata.workflow.workflow import WorkFlow
 # from automata.common.exception import ActionBlockException

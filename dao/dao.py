@@ -383,3 +383,15 @@ class Dao():
                 t1.last_booted_at
             ''')
         return self.cursor.fetchone()
+
+    def load_active_dolls(self):
+        '''起動中のDollを取得する
+        '''
+        self.cursor.execute(''' SELECT
+                                    doll_id
+                                FROM
+                                    doll_status
+                                WHERE
+                                    is_running = 1
+                            ''')
+        return self.cursor.fetchall()

@@ -71,3 +71,6 @@ BOOTING_INTERVAL_SECONDS = 60 * 60 * 3
 
 # パラメータjsonが格納されたディレクトリ
 DOLL_PARAMS_DIR = 'c:/Users/bell/python/project/insta/doll_params'
+
+# Dollの最大並列数（sqlite3のDeadLock や Instagramのブロック回避 で念のため）
+DOLLS_PARALLEL_LIMIT = 5

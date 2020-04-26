@@ -1,7 +1,7 @@
 from datetime import datetime
 from automata.apimediator.abilities import Abilities
 from automata.doll.collector import Collector
-from automata.common.settings import HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO, BOOTING_INTERVAL_SECONDS
+from automata.common.settings import HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO, BOOTING_INTERVAL_SECONDS, DOLLS_PARALLEL_LIMIT
 
 # 文字列 -> クラス の取得で使用しています
 from automata.doll.nine_japan import NineJapan
@@ -53,14 +53,20 @@ class Conductor():
             sqlite3は同時接続に強くないらしいので、使い終わったらconnを早めに閉じておく
         '''
         doll_id, class_name = self.select_doll()
+        active_dolls = self.ab.dao.load_active_dolls()
         self.ab.dao.conn.close()
 
-        if doll_id:
-            self.ab.logger.info(f'doll {doll_id} starts up.')
-            os_chip = self.load_dolls_os_chip(class_name)
-            os_chip(doll_id).run()
-        else:
-            self.ab.logger.info('no doll is made activated.')
+        if len(active_dolls) > DOLLS_PARALLEL_LIMIT:
+            self.ab.logger.info('active dolls has reached parallel limit.')
+            return
+
+        if not doll_id:
+            self.ab.logger.info('there is no doll to activate.')
+            return
+
+        self.ab.logger.info(f'doll {doll_id} starts up.')
+        os_chip = self.load_dolls_os_chip(class_name)
+        os_chip(doll_id).run()
 
     def count_results(self):
         '''所定の時間になったら、当日のリザルトを集計する
