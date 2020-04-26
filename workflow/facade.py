@@ -13,6 +13,7 @@ class Facade():
     def __init__(self, doll_id):
         # インスタンス生成でdollの起動処理が走る
         self.abilities = Abilities(doll_id)
+        self.abilities.setup_doll()
 
         # 各フローの移譲先を取得
         self.following = Following(self.abilities)

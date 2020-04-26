@@ -1,5 +1,5 @@
 from datetime import datetime
-from automata.dao.dao import Dao
+from automata.apimediator.abilities import Abilities
 from automata.doll.collector import Collector
 from automata.common.settings import HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO, BOOTING_INTERVAL_SECONDS
 
@@ -17,8 +17,10 @@ class Conductor():
     def __init__(self, test_mode=False):
         self.today = datetime.now().strftime('%Y%m%d')
         self.test_mode = test_mode
+        self.ab = Abilities('conductor')
+        self.ab.setup_master()
 
-    def select_doll(self, dao):
+    def select_doll(self):
         '''一時的にDBへつなぎ、当日のアクション状況と最終実行日時から起動するdollを決定する
 
         TODO:
@@ -26,7 +28,7 @@ class Conductor():
             いったん保留にしておく（この場合、cron側の長時間稼働kill設定と合わせる必要がある）
         '''
         now_dt = datetime.now()
-        doll = dao.load_next_sleeping_doll()
+        doll = self.ab.dao.load_next_sleeping_doll()
         if self.test_mode:
             return doll['doll_id'], doll['doll_class']
         # 起動条件を満たしていなければ終了
@@ -46,16 +48,19 @@ class Conductor():
     def activate_doll(self):
         '''dollを起動して実行する
         actionの要求回数はいったんDoll JSON で管理
+
+        WARN:
+            sqlite3は同時接続に強くないらしいので、使い終わったらconnを早めに閉じておく
         '''
-        dao = Dao('root', self.today)
-        doll_id, class_name = self.select_doll(dao)
-        dao.conn.close()
+        doll_id, class_name = self.select_doll()
+        self.ab.dao.conn.close()
 
         if doll_id:
+            self.ab.logger.info(f'doll {doll_id} starts up.')
             os_chip = self.load_dolls_os_chip(class_name)
             os_chip(doll_id).run()
         else:
-            print('no doll is made activated.')
+            self.ab.logger.info('no doll is made activated.')
 
     def count_results(self):
         '''所定の時間になったら、当日のリザルトを集計する

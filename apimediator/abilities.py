@@ -24,6 +24,9 @@ class Abilities():
         # 実行日を取得
         self.today = datetime.now().strftime('%Y%m%d')
 
+    def setup_doll(self):
+        '''Doll向けの機能をセットアップする
+        '''
         # loggerを取得
         self.logger = self.create_logger()
         self.logger.debug('LOADING - BOOTING SYSTEM...')
@@ -46,11 +49,18 @@ class Abilities():
 
         # dollを起動中にする
         self.dao.lock_doll_status()
-
         self.logger.debug(f'AUTOMATA is activated. - doll id: {self.doll_id}, login id: {self.login_id}')
 
+    def setup_master(self):
+        '''Doll制御クラス向けに、DB接続とLoggerだけ解放する
+        '''
+        # loggerを取得
+        self.logger = self.create_logger()
+        # DBセッションを取得
+        self.dao = Dao(self.doll_id, self.today)
+
     def close(self):
-        '''dollの終了処理
+        '''Dollの終了処理
         '''
         self.dao.unlock_doll_status()
         self.dao.conn.close()

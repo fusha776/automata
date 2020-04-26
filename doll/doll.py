@@ -96,10 +96,9 @@ class Doll():
             self.facade.abilities.close()
 
     @classmethod
-    def save_results(cls, target_day, doll_group):
+    def save_results(cls, dao, logger, target_day, doll_group):
         '''アクションの集計を出力する
         '''
-        dao = Dao('batch', target_day)
         actions = dao.load_daily_action_results(doll_group, target_day)
         msg = cls.format(target_day, actions)
 
@@ -108,16 +107,16 @@ class Doll():
         if not os.path.exists(result_path):
             with open(result_path, 'w', encoding='utf8') as f:
                 f.write(msg)
-                print('result is saved.')
+                logger.info('result is saved.')
         else:
-            print('result was already saved.')
-        dao.conn.close()
+            logger.info('result was already saved.')
 
     @classmethod
     def format(cls, target_day, doll_records):
-        '''レコードを出力テキストへ整形する
+        '''レコードを受け取って出力テキストへ整形する
 
         Args:
+            target_day (str): アクション集計対象日
             doll_records (Row[]): アクションが集計されたdoll毎のレコード. 取得できるカラムは以下.
 
             login_id,　label, client, doll_group,
