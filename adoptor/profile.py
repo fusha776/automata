@@ -19,7 +19,7 @@ class Profile():
         self.login_id = self.mediator.doll_conf.login_id
 
     @loading
-    @wait
+    @wait()
     def switch_to_user_profile(self, insta_id):
         '''指定されたインスタグラムID の[プロフィール]へ遷移する
         アカ削除済等で遷移できないケースがある
@@ -41,7 +41,7 @@ class Profile():
         # return True
 
     @loading
-    @wait
+    @wait()
     def switch_to_following(self, insta_id):
         '''[フォロー中] へ移動する
         URL直打ちは弾かれる
@@ -58,7 +58,7 @@ class Profile():
         following_btn.click()
 
     @loading
-    @wait
+    @wait()
     def switch_to_followers(self, insta_id):
         '''[フォロワー] へ移動する
         URL直打ちは弾かれる
@@ -75,7 +75,7 @@ class Profile():
         following_btn.click()
 
     @loading
-    @wait
+    @wait()
     def follow(self, insta_id, insert_into_table=True):
         '''フォローする
 
@@ -108,7 +108,7 @@ class Profile():
         return has_followed
 
     @loading
-    @wait
+    @wait()
     def follow_back(self, insta_id, insert_into_table=True):
         '''フォローバックする
 
@@ -141,7 +141,7 @@ class Profile():
         return has_followed
 
     @loading
-    @wait
+    @wait()
     def unfollow(self, insta_id, stop_private=False):
         '''指定されたインスタIDをアンフォローする
 
@@ -189,7 +189,7 @@ class Profile():
         return True
 
     @loading
-    @wait
+    @wait(2)
     def read_neighbor_datasets_on_order(self, min_rec_size, checked, retry_cnt=5, loading_limit=LOADING_NEIGHBORS_LIMIT):
         '''指定サイズを超えるまでユーザリストを取得し続ける
 

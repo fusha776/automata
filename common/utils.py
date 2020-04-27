@@ -7,14 +7,16 @@ from selenium.common.exceptions import JavascriptException
 from automata.common.settings import ACTION_WAIT_SECONDS, WAIT_LOADING_SECONDS
 
 
-def wait(func):
-    '''画面遷移前に一定秒停止させる（デコレータ）
-    '''
-    def wrapper(*args, **kwargs):
-        # ランダムに停止させる
-        sleep(ACTION_WAIT_SECONDS * (1 + 0.5 * random()))
-        return func(*args, **kwargs)
-    return wrapper
+def wait(waiting_seconds=ACTION_WAIT_SECONDS):
+    def _wait(func):
+        '''画面遷移前に一定秒停止させる（デコレータ）
+        '''
+        def wrapper(*args, **kwargs):
+            # ランダムに停止させる
+            sleep(waiting_seconds * (1 + 0.5 * random()))
+            return func(*args, **kwargs)
+        return wrapper
+    return _wait
 
 
 def loading(func):

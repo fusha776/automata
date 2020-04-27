@@ -11,7 +11,7 @@ class Post():
         self.login_id = self.mediator.doll_conf.login_id
 
     @loading
-    @wait
+    @wait()
     def fav(self):
         '''投稿をfavする
 

@@ -21,7 +21,7 @@ class Modal():
             self.turn_off_notice()
 
     @loading
-    @wait
+    @wait()
     def check_dialog(self):
         '''モーダルが出現しているか確認する
         '''
@@ -55,7 +55,7 @@ class Modal():
         off_btn.click()
 
     @loading
-    @wait
+    @wait()
     def press_unfollow_at_profile_home(self):
         '''確認ダイアログのアンフォローボタン（プロフィール画面）で、アンフォローを押す
 
@@ -70,7 +70,7 @@ class Modal():
         unfollow_btn.click()
 
     @loading
-    @wait
+    @wait()
     def check_unfollow_dialog_if_private(self):
         '''アンフォロー確認ダイアログから、鍵アカか確認する
 
@@ -84,7 +84,7 @@ class Modal():
         return False
 
     @loading
-    @wait
+    @wait()
     def check_action_block(self):
         '''アクションブロックを確認し、該当していたらエラーを発生させる
 
@@ -98,7 +98,7 @@ class Modal():
             raise Exception
 
     @loading
-    @wait
+    @wait()
     def press_logout(self):
         '''ログアウトボタンを押す
         '''

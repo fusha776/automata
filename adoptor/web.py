@@ -35,7 +35,7 @@ class Web():
         self.login()
 
     @loading
-    @wait
+    @wait()
     def login(self):
         '''ログインする
 
