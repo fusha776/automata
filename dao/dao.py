@@ -113,10 +113,11 @@ class Dao():
                 UPDATE
                     doll_status
                 SET
+                    last_booted_at = ?,
                     is_running = 0
                 WHERE
                     doll_id = ?
-                ''', (self.doll_id,))
+                ''', (datetime.now(), self.doll_id,))
 
     def update_last_booted_dt(self, target_doll_id):
         '''最終起動日時を更新する

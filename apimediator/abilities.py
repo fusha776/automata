@@ -62,10 +62,12 @@ class Abilities():
     def close(self):
         '''Dollの終了処理
         '''
-        self.dao.unlock_doll_status()
-        self.dao.conn.close()
+        # driverを真っ先に落とす. profileがロックされてると次の起動も失敗する.
         self.driver.close()
         self.driver.quit()
+
+        self.dao.unlock_doll_status()
+        self.dao.conn.close()
         self.logger.debug(f'AUTOMATA is terminated. doll_id: {self.doll_id}, login id: {self.login_id}')
 
     def create_driver(self):

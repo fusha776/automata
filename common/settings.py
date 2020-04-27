@@ -69,10 +69,10 @@ NG_USER_SIZE = 1000  # 廃止予定
 HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO = 16, 23
 
 # 起動間隔を空ける時間（秒）
-BOOTING_INTERVAL_SECONDS = 60 * 60 * 3
+BOOTING_INTERVAL_SECONDS = 60 * 60 * 2
 
 # パラメータjsonが格納されたディレクトリ
 DOLL_PARAMS_DIR = 'c:/Users/bell/python/project/insta/doll_params'
 
 # Dollの最大並列数（sqlite3のDeadLock や Instagramのブロック回避 で念のため）
-DOLLS_PARALLEL_LIMIT = 5
+DOLLS_PARALLEL_LIMIT = 1

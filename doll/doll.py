@@ -96,6 +96,7 @@ class Doll():
         self.facade.switch_to_instagram_home()
 
         # ここまで成功したらDB更新
+        self.facade.abilities.logger.debug(f'ブロック状態のため再ログインを実施')
         self.facade.abilities.dao.reset_blocked_mark()
 
     @classmethod
