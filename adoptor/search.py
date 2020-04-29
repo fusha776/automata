@@ -1,3 +1,4 @@
+from time import sleep
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -23,10 +24,12 @@ class Search():
 
     @loading
     @wait()
-    def search(self, keyword):
+    def search_tags(self, keyword):
         '''keywordで検索して、結果へ遷移する
-        Webで開いた場合は、基本的に一致度降順で結果が並ぶように見える
-        アプリで開くと不詳ソートが走ってる
+        実際は[検索ホーム]から始める必要はないけど、念のため正規ルートに近い画面遷移を推薦
+
+        WARN:
+            URLエンコーディングして直接飛ぶため、`#` 無しの文字列が必要です
 
         Args:
             keyword (str): 検索するワード. タグの場合は#付きで渡す (e.g. '#猫')
@@ -34,14 +37,16 @@ class Search():
         Condition:
             [検索ホーム]
         '''
-        search_btn = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
-            EC.element_to_be_clickable((By.XPATH, '//input[contains(@placeholder, "検索")]')))
-        search_btn.click()
-        search_btn.send_keys(keyword)
+        #
 
-        result_li = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
-            EC.element_to_be_clickable((By.XPATH, '//li')))
-        result_li[0].click()
+        # 何回もdictを参照させて失敗してるから、チェック機構を入れよう
+        if type(keyword) is not str:
+            self.mediator.logger.error(f'文字列ではない検索ワードが参照されました: {keyword}')
+            raise Exception
+
+        # 念のため # 消し処理を加える
+        kw_cleaned = keyword.replace('#', '')
+        self.driver.get(f'https://www.instagram.com/explore/tags/{kw_cleaned}/')
 
     @loading
     @wait()
@@ -64,6 +69,8 @@ class Search():
         photo_frame = self.driver.find_element_by_xpath('//article')
         photos = WebDriverWait(photo_frame, WAIT_LOADING_SECONDS).until(
             EC.element_to_be_clickable((By.XPATH, './/a[contains(@href, "/p/")]')))
+        # clickable は単数しか取得できないので、要素の確認後に取りなおす
+        photos = self.driver.find_elements_by_xpath('.//a[contains(@href, "/p/")]')
 
         links = []
         for photo in photos[POPULAR_POSTS_NUM_IN_SEARCH:]:

@@ -1,3 +1,7 @@
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from automata.common.settings import WAIT_LOADING_SECONDS
 from automata.common.utils import wait, loading
 
 
@@ -40,3 +44,37 @@ class Post():
         # アクション回数を更新
         self.mediator.dao.increase_action_count({'fav': 1})
         return True
+
+    @loading
+    @wait()
+    def estimate_insta_id(self):
+        '''投稿画面から投稿者のインスタIDを推定する
+        htmlの変更に強くするためにもネストの深いタグを辿ることは回避したいので、浅い検索条件から推定する
+
+        条件:
+            リンクにテキストが含まれるaタグの中で出現回数最大のリンク
+
+        Returns:
+            str: インスタID
+
+        Conditions:
+            [投稿写真 or 投稿動画]
+        '''
+        a_cnts = {}
+        anchors = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
+            EC.element_to_be_clickable((By.XPATH, '//a')))
+        # clickable は単数しか取得できないので、要素の確認後に取りなおす
+        anchors = self.driver.find_elements_by_xpath('//a')
+        for a in anchors:
+            link = a.get_attribute('href')
+            tag_text = a.text
+
+            # テキストがブランクならskip
+            if not tag_text:
+                continue
+
+            if tag_text not in a_cnts:
+                a_cnts[tag_text] = 0
+            if tag_text in link:
+                a_cnts[tag_text] += 1
+        return max(a_cnts, key=a_cnts.get)
