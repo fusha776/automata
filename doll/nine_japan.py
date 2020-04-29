@@ -10,10 +10,12 @@ class NineJapan(Doll):
     def operate(self):
         # 初期パラメータのセット
         defaults = {'actions_ff': 0,
+                    'actions_search_ff': 0,
                     'actions_unfollow': 0,
                     'actions_unfollow_no_fb': 0,
                     'fav_rate': 1.0,
                     'max_user_times': 10,
+                    'search_keywords': [],
                     'my_friends': [],
                     'user_size_to_check': 100}
         for key, val in defaults.items():
@@ -29,11 +31,17 @@ class NineJapan(Doll):
                                                            self.params['fav_rate'],
                                                            self.params['max_user_times'])
 
-        # 2. 一定期間を超えたユーザをアンフォロー
+        # 2. 検索結果の最新投稿アカをフォロー or fav
+        if self.params['actions_search_ff'] > 0:
+            self.facade.following.follow_by_searching(self.params['actions_search_ff'],
+                                                      self.params['search_keywords'],
+                                                      self.params['fav_rate'])
+
+        # 3. 一定期間を超えたユーザをアンフォロー
         if self.params['actions_unfollow'] > 0:
             self.facade.unfollowing.unfollow_expires_users(self.params['actions_unfollow'])
 
-        # 3. フォローバックのないアカをアンフォロー
+        # 4. フォローバックのないアカをアンフォロー
         # ※動かなくはないけど、1. と混ぜると負荷が上がるので非推奨
         if self.params['actions_unfollow_no_fb'] > 0:
             self.facade.unfollowing.unfollow_no_followbacks(self.params['actions_unfollow_no_fb'],

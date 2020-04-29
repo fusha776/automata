@@ -1,5 +1,5 @@
 from datetime import datetime
-from automata.apimediator.abilities import Abilities
+from automata.adoptor.abilities import Abilities
 from automata.doll.collector import Collector
 from automata.common.settings import HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO, BOOTING_INTERVAL_SECONDS, DOLLS_PARALLEL_LIMIT
 

@@ -10,6 +10,7 @@ from automata.adoptor.web import Web
 from automata.adoptor.profile import Profile
 from automata.adoptor.post import Post
 from automata.adoptor.modal import Modal
+from automata.adoptor.search import Search
 
 
 class Abilities():
@@ -46,6 +47,7 @@ class Abilities():
         self.profile = Profile(self)
         self.post = Post(self)
         self.modal = Modal(self)
+        self.search = Search(self)
 
         # dollを起動中にする
         self.dao.lock_doll_status()

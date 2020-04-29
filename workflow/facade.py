@@ -1,5 +1,5 @@
 from time import sleep
-from automata.apimediator.abilities import Abilities
+from automata.adoptor.abilities import Abilities
 from automata.workflow.following import Following
 from automata.workflow.unfollowing import Unfollowing
 

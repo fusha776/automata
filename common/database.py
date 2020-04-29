@@ -164,7 +164,7 @@ doll追加のサンプルSQL
 INSERT INTO doll_settings
 VALUES
 ("nine_japan_3", "フォロー、アンフォロー、いいね", "poyomaru555", "ぽよまる", "itsumono_pass", "厚いクライアント",
- "c:/Users/bell/python/project/insta/chrome_profiles", "Profile 2", "Pixel 2",
+ "d:/python/project/insta/chromes/poyomaru", "Profile 2", "Pixel 2", "DollClass",
  "action_nj", "c/Users/bell/python/project/instagram/appium/lake/action_nj", "None", "None",
  0, 0, 20, 100, 20, 0, 0, 10, 50, 10);
 '''

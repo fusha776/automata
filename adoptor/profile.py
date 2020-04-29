@@ -271,20 +271,6 @@ class Profile():
         Condition:
             [プロフィール]
         '''
-        def to_num(s):
-            '''投稿, フォロワー, フォロー中などを数値へ変換する
-            '''
-            if not s:
-                return None
-            s = s.replace(',', '')
-
-            if ('NaN' in s):
-                s = 0
-            elif '万' in s:
-                s = s.replace('万', '')
-                s = float(s) * 10000
-            return int(s)
-
         profiles = {}
         profiles['insta_id'] = self.driver.find_elements_by_xpath('//*[@id="react-root"]/section/main/div/header/section/div[1]/h2')
         profiles['name'] = self.driver.find_elements_by_xpath('//*[@id="react-root"]/section/main/div/div[1]/h1')
@@ -302,9 +288,9 @@ class Profile():
                 profiles[col] = None
 
         # 一部を数値へ変換
-        profiles['posts'] = to_num(profiles['posts'])
-        profiles['follower'] = to_num(profiles['follower'])
-        profiles['following'] = to_num(profiles['following'])
+        profiles['posts'] = self.to_num(profiles['posts'])
+        profiles['follower'] = self.to_num(profiles['follower'])
+        profiles['following'] = self.to_num(profiles['following'])
 
         # フォロー状況フラグを取得
         profiles['is_following'] = False
@@ -325,8 +311,21 @@ class Profile():
 
         # プライペートフラグを取得
         profiles['is_private'] = self.check_private()
-
         return profiles
+
+    def to_num(self, s):
+        '''投稿, フォロワー, フォロー中などを数値へ変換する
+        '''
+        if not s:
+            return None
+        s = s.replace(',', '')
+
+        if ('NaN' in s):
+            s = 0
+        elif '万' in s:
+            s = s.replace('万', '')
+            s = float(s) * 10000
+        return int(s)
 
     @loading
     def check_private(self):
@@ -391,6 +390,68 @@ class Profile():
         return res[0] if res else None
 
     @loading
+    def pick_website_btn(self):
+        '''websiteのlinkボタンを取得する
+
+        Returns:
+            element or None: プロフィールに記載された外部リンクボタンのelement
+
+        Conditions:
+            [プロフィール]
+        '''
+        res = None
+        fbtn_base = self.driver.find_elements_by_xpath('//header/section')
+        if fbtn_base:
+            res = fbtn_base[0].find_elements_by_xpath('//a[contains(@href, "l.instagram.com")]')
+        return res[0] if res else None
+
+    @loading
+    def pick_follower_num(self):
+        '''フォロワー数を取得する
+
+        Returns:
+            int or None: フォロワー数, 取得不可の場合はNone
+
+        Conditions:
+            [プロフィール]
+        '''
+        res = None
+        follower_btn = self.driver.find_elements_by_xpath("//a[contains(text(), 'フォロワー')]/span")
+        if follower_btn:
+            res = self.to_num(follower_btn[0].text)
+        return res
+
+    @loading
+    def pick_following_num(self):
+        '''フォロワー数を取得する
+
+        Returns:
+            int or None: フォロー中数, 取得不可の場合はNone
+
+        Conditions:
+            [プロフィール]
+        '''
+        res = None
+        following_btn = self.driver.find_elements_by_xpath("//a[contains(text(), 'フォロー中')]/span")
+        if following_btn:
+            res = self.to_num(following_btn[0].text)
+        return res
+
+    @loading
+    def pick_bio_message(self):
+        '''bio欄のプロフ文を取得する
+        タグの指定が深いけど、これ以外の取得ルートは難しそう
+
+        Returns:
+            int or None: フォロー中数, 取得不可の場合はNone
+
+        Conditions:
+            [プロフィール]
+        '''
+        bio_btn = self.driver.find_elements_by_xpath('//*[@id="react-root"]/section/main/div/div[1]/span')
+        return bio_btn[0].text if bio_btn else None
+
+    @loading
     def is_deleted_page(self):
         '''削除済みページかチェックする
 
@@ -406,6 +467,9 @@ class Profile():
     @loading
     def get_post_links(self, max_size=10):
         '''投稿写真へのリンクを取得する
+
+        Returns:
+            str[]: 投稿詳細へのリンク
 
         Conditions:
             [プロフィール]

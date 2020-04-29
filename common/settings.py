@@ -3,20 +3,23 @@
 ##########
 
 # chrome webdriver のパス
-CHROMEDRIVER_PATH = 'c:/Users/bell/python/project/insta/driver/chromedriver.exe'
+CHROMEDRIVER_PATH = 'd:/python/project/insta/driver/chromedriver.exe'
 
 # ブラウザのキャッシュサイズ. 大きすぎるとDisk容量を食べる
 CHROME_CACHE_SIZE = 52428800
 
-######
-# DB #
-######
+###############
+# DB & Params #
+###############
 
 # テーブルのルート
-DATABASE_PATH = 'c:/Users/bell/python/project/insta/storage/tables/automata_db.sqlite3'
+DATABASE_PATH = 'd:/python/project/insta/tables/automata_db.sqlite3'
 
 # データレイクのルート
 LAKE_ROOT_PATH = 'c:/Users/bell/python/project/instagram/appium/lake'
+
+# パラメータjsonが格納されたディレクトリ
+DOLL_PARAMS_DIR = 'c:/Users/bell/python/project/insta_dev/doll_params'
 
 
 ###############
@@ -44,6 +47,12 @@ FOLLOWER_UPPER_LIMIT = 10000
 # フォロワー or フォロー中をロードする最大数（大きいとAPI制限の引っかかりやすさが跳ね上がる）
 LOADING_NEIGHBORS_LIMIT = 100
 
+# [検索結果] で、人気投稿の表示される件数（リンク取得からskipする画像の件数）
+POPULAR_POSTS_NUM_IN_SEARCH = 9
+
+# プロフコメントに含まれていたら法人相当とみなす文字列
+HOJIN_KEYWORDS = ['院', '店', '屋', '公式', '仕事', '依頼', '稼', 'DM']
+
 ###############
 # フォロー管理 #
 ###############
@@ -69,10 +78,7 @@ NG_USER_SIZE = 1000  # 廃止予定
 HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO = 16, 23
 
 # 起動間隔を空ける時間（秒）
-BOOTING_INTERVAL_SECONDS = 60 * 60 * 2
-
-# パラメータjsonが格納されたディレクトリ
-DOLL_PARAMS_DIR = 'c:/Users/bell/python/project/insta/doll_params'
+BOOTING_INTERVAL_SECONDS = 60 * 60 * 3
 
 # Dollの最大並列数（sqlite3のDeadLock や Instagramのブロック回避 で念のため）
 DOLLS_PARALLEL_LIMIT = 1

@@ -1,4 +1,4 @@
-from automata.apimediator.abilities import Abilities
+from automata.adoptor.abilities import Abilities
 from automata.doll.nine_japan import NineJapan
 
 

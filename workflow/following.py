@@ -1,6 +1,6 @@
 import random
 from math import ceil
-from automata.common.settings import FOLLOWER_UPPER_LIMIT
+from automata.common.settings import FOLLOWER_UPPER_LIMIT, HOJIN_KEYWORDS
 
 
 class Following():
@@ -118,45 +118,6 @@ class Following():
         Conditions:
             [プロフィール] - [フォロー中 or フォロワー]
         '''
-        def check_valid():
-            '''有効ユーザかチェックする
-
-            Returns:
-                bool: 有効なユーザ -> True
-            '''
-            # プロフィールを取得、失敗した場合はskip
-            profs = self.ab.profile.get_user_details()
-            has_needed_profs = True
-            has_needed_profs &= profs['follower'] is not None
-            has_needed_profs &= profs['following'] is not None
-            has_needed_profs &= profs['is_following'] is not None
-            has_needed_profs &= profs['is_private'] is not None
-            if not (has_needed_profs):
-                return False, "鍵アカ or プロフィール取得失敗"
-
-            is_valid = True
-            reason_msg = "it seems good."
-            # 既にフォロー済
-            if profs['is_following']:
-                is_valid = False
-                reason_msg = "既にフォロー済"
-
-            # プライベート
-            elif profs['is_private']:
-                is_valid = False
-                reason_msg = "鍵アカ"
-
-            # 法人相当： 所定値よりフォロワー数が多い
-            elif profs['follower'] >= FOLLOWER_UPPER_LIMIT:
-                is_valid = False
-                reason_msg = "法人判定: フォロワー数が閾値超え"
-
-            # 法人相当： フォロワー / フォロー数 > 1.5
-            elif (profs['follower'] / (profs['following'] + 1)) > 1.5:
-                is_valid = False
-                reason_msg = "法人判定: フォロー中/フォロワー数 比率が大きい"
-            return is_valid, reason_msg
-
         def try_to_fav(max_fav_cnt=3):
             '''ファボを試す
 
@@ -207,7 +168,7 @@ class Following():
             self.ab.profile.switch_to_user_profile(insta_id_i)
 
             # 有効なユーザか確かめる
-            is_valid, reason_msg = check_valid()
+            is_valid, reason_msg = self.check_valid()
             if not is_valid:
                 error_cnt += 1
                 is_private = True if '鍵アカ' in reason_msg else False
@@ -236,3 +197,143 @@ class Following():
 
         self.ab.logger.debug(f'フォロワーの探索を終了: 追加アクション計: follow -> {followed_cnt}, fav -> {fav_cnt}')
         return followed_cnt, fav_cnt, checked
+
+    def check_valid(self):
+        '''有効ユーザかチェックする
+
+        Returns:
+            bool, str: 有効なユーザ -> True, 判定理由メッセージ
+
+        Conditions:
+            [プロフィール]
+        '''
+        # プロフィールを取得、失敗した場合はskip
+        profs = self.ab.profile.get_user_details()
+        has_needed_profs = True
+        has_needed_profs &= profs['follower'] is not None
+        has_needed_profs &= profs['following'] is not None
+        has_needed_profs &= profs['is_following'] is not None
+        has_needed_profs &= profs['is_private'] is not None
+        if not (has_needed_profs):
+            return False, "鍵アカ or プロフィール取得失敗"
+
+        is_valid = True
+        reason_msg = "it seems good."
+        # 既にフォロー済
+        if profs['is_following']:
+            is_valid = False
+            reason_msg = "既にフォロー済"
+
+        # プライベート
+        elif profs['is_private']:
+            is_valid = False
+            reason_msg = "鍵アカ"
+
+        # 法人相当： 所定値よりフォロワー数が多い
+        elif profs['follower'] >= FOLLOWER_UPPER_LIMIT:
+            is_valid = False
+            reason_msg = "法人判定: フォロワー数が閾値超え"
+
+        # 法人相当： フォロワー / フォロー数 > 2
+        elif (profs['follower'] / (profs['following'] + 1)) > 2:
+            is_valid = False
+            reason_msg = "法人判定: フォロー中/フォロワー数 比率が大きい"
+        return is_valid, reason_msg
+
+    def check_kojin(self):
+        '''個人かどうかチェックする
+
+        Returns:
+            bool: 法人相当と判定 -> True
+
+        Conditions:
+            [プロフィール]
+        '''
+        follower_cnt = self.ab.profile.pick_follower_num()
+        following_cnt = self.ab.profile.pick_following_num()
+        bio_msg = self.ab.profile.pick_bio_message()
+        website_btn = self.ab.profile.pick_website_btn()
+
+        # 要素取得に失敗したらFalseで返却 (bool形式を除く)
+        if not (follower_cnt and following_cnt and bio_msg):
+            return False, "個人判定不可: 要素取得に失敗"
+
+        is_valid = True
+        reason_msg = "it seems good."
+        # 所定値よりフォロワー数が多い
+        if follower_cnt >= FOLLOWER_UPPER_LIMIT:
+            is_valid = False
+            reason_msg = "法人判定: フォロワー数が閾値超え"
+
+        # フォロワー / フォロー数 > 2
+        elif follower_cnt/(following_cnt + 1) > 2:
+            is_valid = False
+            reason_msg = "法人判定: フォロー中/フォロワー数 比率が大きい"
+
+        # 特定のキーワードをプロフ文に含んでいる
+        elif any([True for h_kw in HOJIN_KEYWORDS if h_kw in bio_msg]):
+            is_valid = False
+            reason_msg = "法人判定: 特定キーワードをプロフ文に含んでいる"
+
+        # 外部websiteが登録されている
+        elif website_btn:
+            is_valid = False
+            reason_msg = "法人判定: 外部websiteが登録されている"
+
+        return is_valid, reason_msg
+
+    def follow_by_searching(self, actions, keywords, fav_rate=0.7):
+        '''投稿検索で見つけたフォロワーをフォローする
+
+        followは個人アカか確かめるけど、favは未確認でも良いでしょう
+
+        Args:
+            actions (int): 実行する action の回数
+            keywords (str[]): 検索するキーワード ハッシュタグでも `#` は消しておく
+            fav_rate (float): フォローの代わりにfavする確率
+        '''
+        self.ab.logger.debug('start operation: キーワード検索の最新投稿アカを follow or fav')
+        self.ab.search.switch_to_search_home()
+
+        keywords_shuffled = random.sample(keywords, len(keywords))
+        followed_cnt = 0
+        fav_cnt = 0
+        is_enough = False
+        for kw in keywords_shuffled:
+            self.ab.logger.debug(f'次のキーワード検索 - 開始: {kw} アクション残: {fav_cnt + followed_cnt}/{actions}')
+            self.ab.search.search_tags(kw)
+            for img_link in self.ab.search.load_imgs():
+                # 必要分のアクションが終わったら離脱
+                if (followed_cnt + fav_cnt) >= actions:
+                    is_enough = True
+                    break
+
+                self.ab.driver.get(img_link)
+                insta_id_i = self.ab.post.estimate_insta_id()
+
+                # 同一アクションの連続はブロックの危険があがるので、fav or follow をランダムで変える
+                is_private = False
+                if random.random() <= fav_rate:
+                    # fav
+                    fav_cnt += int(self.ab.post.fav())
+                    self.ab.logger.debug(f'アクション fav: {insta_id_i}, cnt is 1')
+                else:
+                    # follow
+                    self.ab.profile.switch_to_user_profile(insta_id_i)
+                    # 個人アカか確かめる
+                    is_valid, reason_msg = self.check_kojin()
+                    print(is_valid, reason_msg)
+                    if is_valid:
+                        # フォローをトライする (フォローバックはしない)
+                        has_followed = self.ab.profile.follow(insta_id_i)
+                        self.ab.logger.debug(f'アクション follow: {insta_id_i}')
+                        if has_followed:
+                            followed_cnt += 1
+                    else:
+                        is_private = True if '鍵アカ' in reason_msg else False
+                        self.ab.logger.debug(f'無効なユーザ: {insta_id_i}, {reason_msg}')
+                self.ab.dao.add_recent_touched_user(insta_id_i, int(is_private))
+            self.ab.logger.debug(f'次のキーワード検索 - 終了: keyword -> {kw}, follow -> {followed_cnt}, fav -> {fav_cnt}')
+            if is_enough:
+                break
+        self.ab.logger.debug('end operation: キーワード検索の最新投稿アカを follow or fav')
