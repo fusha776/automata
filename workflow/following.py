@@ -151,8 +151,8 @@ class Following():
                 is_valid = False
                 reason_msg = "法人判定: フォロワー数が閾値超え"
 
-            # 法人相当： フォロワー / フォロー数 > 1.5
-            elif (profs['follower'] / (profs['following'] + 1)) > 1.5:
+            # 法人相当： フォロワー / フォロー数 > 2
+            elif (profs['follower'] / (profs['following'] + 1)) > 2:
                 is_valid = False
                 reason_msg = "法人判定: フォロー中/フォロワー数 比率が大きい"
             return is_valid, reason_msg
