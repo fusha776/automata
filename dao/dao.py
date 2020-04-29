@@ -405,7 +405,7 @@ class Dao():
                     LEFT JOIN action_counters t3 ON t1.doll_id = t3.doll_id
             WHERE
                 t1.is_running = 0 and
-                t2.fav_per_day + t2.follow_per_day + t2.unfollow_per_day > t3.fav + t3.follow + t3.unfollow
+                t2.fav_per_day + t2.follow_per_day + t2.unfollow_per_day > ifnull(t3.fav, 0) + ifnull(t3.follow, 0) + ifnull(t3.unfollow, 0)
             ORDER BY
                 t1.last_booted_at
             ''')
