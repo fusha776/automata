@@ -407,6 +407,9 @@ class Profile():
     def get_post_links(self, max_size=10):
         '''投稿写真へのリンクを取得する
 
+        Returns:
+            str[]: 投稿詳細へのリンク
+
         Conditions:
             [プロフィール]
         '''

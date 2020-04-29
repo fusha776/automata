@@ -47,6 +47,9 @@ FOLLOWER_UPPER_LIMIT = 10000
 # フォロワー or フォロー中をロードする最大数（大きいとAPI制限の引っかかりやすさが跳ね上がる）
 LOADING_NEIGHBORS_LIMIT = 100
 
+# [検索結果] で、人気投稿の表示される件数（リンク取得からskipする画像の件数）
+POPULAR_POSTS_NUM_IN_SEARCH = 9
+
 ###############
 # フォロー管理 #
 ###############
