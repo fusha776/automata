@@ -76,7 +76,6 @@ class Following():
         if my_friends:
             starting_login_id = random.choice(my_friends)['insta_id']
         starting_neighbors = self.load_followers_as_userlist(starting_login_id, max_user_times)
-        users_at_least = 3  # 渡されなければ、リスク分散のために少なくとも3ユーザを辿る
 
         cnt = 0
         for user_i in starting_neighbors[:max_user_times]:
@@ -95,7 +94,7 @@ class Following():
             self.ab.profile.switch_to_followers(user_i['insta_id'])
 
             # 一人のフォロワーから辿れるアクション数に最大値を設定する
-            actions_in_this_user = min(ceil(actions / users_at_least), actions - cnt)
+            actions_in_this_user = min(actions, actions - cnt)
 
             # [フォロー中 or フォロワー] に表示されているユーザに対してアクションを仕込む
             self.ab.logger.debug(f'フォロワーの探索を開始: {user_i["insta_id"]} アクション残: {cnt}/{actions}')
