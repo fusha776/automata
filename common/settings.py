@@ -51,7 +51,7 @@ LOADING_NEIGHBORS_LIMIT = 100
 POPULAR_POSTS_NUM_IN_SEARCH = 9
 
 # プロフコメントに含まれていたら法人相当とみなす文字列
-HOJIN_KEYWORDS = ['院', '店', '屋', '公式', '仕事', '依頼', '稼', 'DM']
+HOJIN_KEYWORDS = ['院', '店', '屋', '公式', '副業', '収入', 'フォロワー', '仕事', '依頼', '稼', 'DM']
 
 ###############
 # フォロー管理 #
@@ -78,7 +78,7 @@ NG_USER_SIZE = 1000  # 廃止予定
 HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO = 16, 23
 
 # 起動間隔を空ける時間（秒）
-BOOTING_INTERVAL_SECONDS = 60 * 60 * 3
+BOOTING_INTERVAL_SECONDS = 60 * 60 * 2.5
 
 # Dollの最大並列数（sqlite3のDeadLock や Instagramのブロック回避 で念のため）
 DOLLS_PARALLEL_LIMIT = 1

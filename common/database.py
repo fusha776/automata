@@ -1,5 +1,5 @@
-import sqlite3
-from automata.common.settings import DATABASE_PATH, LAKE_ROOT_PATH
+import pymysql
+from automata.common.settings import LAKE_ROOT_PATH
 
 
 class Model():
@@ -9,124 +9,125 @@ class Model():
 
     def __init__(self):
         # データベース接続とカーソル生成
-        self.conn = sqlite3.connect(DATABASE_PATH)
-
-        self.conn = sqlite3.connect(DATABASE_PATH, detect_types=sqlite3.PARSE_DECLTYPES)
-        self.conn.row_factory = sqlite3.Row
+        self.conn = pymysql.connect(host='localhost',
+                                    user='root',
+                                    password='root',
+                                    db='automata',
+                                    charset='utf8mb4',
+                                    cursorclass=pymysql.cursors.DictCursor)
 
         # 自動コミットにする場合は下記を指定（コメントアウトを解除のこと）
         # connection.isolation_level = None
-        self.cursor = self.conn.cursor()
 
     def create_tables(self):
         dm_histories = '''CREATE TABLE IF NOT EXISTS dm_histories (
-            doll_id TEXT,
-            instagram_id TEXT,
-            dm_message_id TEXT,
-            sent_on TEXT,
+            doll_id VARCHAR,
+            instagram_id VARCHAR,
+            dm_message_id VARCHAR,
+            sent_on VARCHAR,
             PRIMARY KEY (doll_id, instagram_id)
         )'''
 
         dm_messages_mst = '''CREATE TABLE IF NOT EXISTS dm_messages_mst (
-            dm_message_id TEXT PRIMARY KEY,
-            message TEXT,
-            is_activated INTEGER
+            dm_message_id VARCHAR PRIMARY KEY,
+            message VARCHAR,
+            is_activated TINYINT
         )'''
 
         following_status = '''CREATE TABLE IF NOT EXISTS following_status (
-            doll_id TEXT,
-            instagram_id TEXT,
-            has_followed INTEGER,
-            is_follower INTEGER,
-            created_at TIMESTAMP,
-            updated_at TIMESTAMP,
+            doll_id VARCHAR(32),
+            instagram_id VARCHAR(32),
+            has_followed TINYINT,
+            is_follower TINYINT,
+            created_at DATETIME,
+            updated_at DATETIME,
             PRIMARY KEY (doll_id, instagram_id)
         )'''
 
         hashtag_groups_mst = '''CREATE TABLE IF NOT EXISTS hashtag_groups_mst (
-            hashtag_group TEXT,
-            hashtag TEXT,
+            hashtag_group VARCHAR,
+            hashtag VARCHAR,
             PRIMARY KEY (hashtag_group, hashtag)
         )'''
 
         doll_settings = '''CREATE TABLE IF NOT EXISTS doll_settings (
-            doll_id TEXT PRIMARY KEY,
-            description TEXT,
-            login_id TEXT,
-            label TEXT,
-            password TEXT,
-            client TEXT,
-            browser_data_dir TEXT,
-            profile_dir TEXT,
-            device_name TEXT,
-            doll_class TEXT,
-            doll_group TEXT,
-            doll_group_lake_path TEXT,
-            dm_message_id TEXT,
-            hashtag_group TEXT,
-            post_per_day INTEGER,
-            dm_per_day INTEGER,
-            fav_per_day INTEGER,
-            follow_per_day INTEGER,
-            unfollow_per_day INTEGER,
-            post_per_boot INTEGER,
-            dm_per_boot INTEGER,
-            fav_per_boot INTEGER,
-            follow_per_boot INTEGER,
-            unfollow_per_boot INTEGER
+            doll_id VARCHAR(32) PRIMARY KEY,
+            description VARCHAR(255),
+            login_id VARCHAR(32),
+            label VARCHAR(32),
+            password VARCHAR(32),
+            client VARCHAR(32),
+            browser_data_dir VARCHAR(128),
+            profile_dir VARCHAR(64),
+            device_name VARCHAR(32),
+            doll_class VARCHAR(32),
+            doll_group VARCHAR(32),
+            doll_group_lake_path VARCHAR(128),
+            dm_message_id VARCHAR(32),
+            hashtag_group VARCHAR(32),
+            post_per_day SMALLINT,
+            dm_per_day SMALLINT,
+            fav_per_day SMALLINT,
+            follow_per_day SMALLINT,
+            unfollow_per_day SMALLINT,
+            post_per_boot SMALLINT,
+            dm_per_boot SMALLINT,
+            fav_per_boot SMALLINT,
+            follow_per_boot SMALLINT,
+            unfollow_per_boot SMALLINT
         )'''
 
         action_counters = '''CREATE TABLE IF NOT EXISTS action_counters (
-            doll_id TEXT,
-            operated_on TEXT,
-            post INTEGER,
-            dm INTEGER,
-            fav INTEGER,
-            follow INTEGER,
-            unfollow INTEGER,
-            others INTEGER,
-            summary_cnt INTEGER,
-            is_blocked INTEGER,
+            doll_id VARCHAR(32),
+            operated_on VARCHAR(8),
+            post SMALLINT,
+            dm SMALLINT,
+            fav SMALLINT,
+            follow SMALLINT,
+            unfollow SMALLINT,
+            others SMALLINT,
+            summary_cnt SMALLINT,
+            is_blocked TINYINT,
             PRIMARY KEY (doll_id, operated_on)
         )'''
 
         ng_users = '''CREATE TABLE IF NOT EXISTS ng_users (
-            doll_group TEXT,
-            instagram_id TEXT,
-            created_on TEXT,
-            is_permanent INTEGER,
+            doll_group VARCHAR(32),
+            instagram_id VARCHAR(32),
+            created_on VARCHAR(8),
+            is_permanent TINYINT,
             PRIMARY KEY (doll_group, instagram_id)
         )'''
 
         doll_status = '''
             CREATE TABLE IF NOT EXISTS doll_status (
-            doll_id TEXT PRIMARY KEY,
-            last_booted_at TIMESTAMP,
-            today_booted_times INTEGER,
-            is_running INTEGER,
-            is_blocked INTEGER
+            doll_id VARCHAR(32) PRIMARY KEY,
+            last_booted_at DATETIME,
+            today_booted_times TINYINT,
+            is_running TINYINT,
+            is_blocked TINYINT
         )'''
 
         recent_touched_histories = '''
             CREATE TABLE IF NOT EXISTS recent_touched_histories (
-            doll_id TEXT,
-            instagram_id TEXT,
-            is_private INTEGER,
-            checked_at TIMESTAMP,
+            doll_id VARCHAR(32),
+            instagram_id VARCHAR(32),
+            is_private TINYINT,
+            checked_at DATETIME,
             PRIMARY KEY (doll_id, instagram_id)
         )'''
 
-        with self.conn:
-            _ = dm_histories, dm_messages_mst, hashtag_groups_mst, ng_users  # 現在未使用テーブル、Lintのエラー避け
-            # self.conn.execute(dm_histories)
-            # self.conn.execute(dm_messages_mst)
-            self.conn.execute(following_status)
-            # self.conn.execute(hashtag_groups_mst)
-            self.conn.execute(doll_settings)
-            self.conn.execute(action_counters)
-            # self.conn.execute(ng_users)
-            self.conn.execute(doll_status)
-            self.conn.execute(recent_touched_histories)
+        _ = dm_histories, dm_messages_mst, hashtag_groups_mst, ng_users  # 現在未使用テーブル、Lintのエラー避け
+        with self.conn.cursor() as cursor:
+            cursor.execute(following_status)
+            cursor.execute(doll_settings)
+            cursor.execute(action_counters)
+            cursor.execute(doll_status)
+            cursor.execute(recent_touched_histories)
+            # cursor.execute(dm_histories)
+            # cursor.execute(dm_messages_mst)
+            # cursor.execute(hashtag_groups_mst)
+            # cursor.execute(ng_users)
 
     def migrate(self):
         '''マスタ他のレコードを、実行するたびに洗い替えする
@@ -150,8 +151,8 @@ class Model():
                   2, 20, None, None, None,
                   1, 10, None, None, None)]
 
-        with self.conn:
-            self.conn.executemany(doll_settings, dolls)
+        with self.conn.cursor() as cursor:
+            cursor.executemany(doll_settings, dolls)
 
 
 if __name__ == '__main__':
