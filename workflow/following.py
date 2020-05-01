@@ -1,5 +1,4 @@
 import random
-from math import ceil
 from automata.common.settings import FOLLOWER_UPPER_LIMIT, HOJIN_KEYWORDS
 
 
@@ -10,7 +9,7 @@ class Following():
     def __init__(self, abilities):
         self.ab = abilities
 
-    def load_followers_as_userlist(self, target_id, rec_size=50):
+    def load_followings_as_userlist(self, target_id, rec_size=50):
         '''対象ユーザのフォロワーからユーザリストを生成
 
         Args:
@@ -28,8 +27,7 @@ class Following():
         # 必要なカラムに絞る
         userlists = []
         for u in raw_userlists:
-            dict_i = {'insta_id': u['insta_id'], 'follow_msg': u['follow_msg']}
-            userlists.append(dict_i)
+            userlists.append(u['insta_id'])
 
         # 上の方は何回も呼ばれるため、順番をシャッフルして返却
         random.shuffle(userlists)
@@ -46,13 +44,14 @@ class Following():
         for img_link in self.ab.search.load_popular_posts():
             self.ab.driver.get(img_link)
             insta_id_i = self.ab.post.estimate_insta_id()
+            popular_ids.append(insta_id_i)
 
-            # 取得成功と参照可能をチェックする
-            self.ab.profile.switch_to_user_profile(insta_id_i)
-            follower_cnt = self.ab.profile.pick_follower_num()
-            following_cnt = self.ab.profile.pick_following_num()
-            if follower_cnt and following_cnt:
-                popular_ids.append(insta_id_i)
+            # # 取得成功と参照可能をチェックする ※ 何回か回してみて上手くいきそうなら削除
+            # self.ab.profile.switch_to_user_profile(insta_id_i)
+            # follower_cnt = self.ab.profile.pick_follower_num()
+            # following_cnt = self.ab.profile.pick_following_num()
+            # if follower_cnt and following_cnt:
+            #     popular_ids.append(insta_id_i)
         return popular_ids
 
     def follow_friends_neighbors(self, actions, my_friends, fav_rate=0.7, max_user_times=50):
@@ -98,20 +97,20 @@ class Following():
                 break
 
             # 対象ユーザのプロフィールへ移動
-            self.ab.profile.switch_to_user_profile(user_i['insta_id'])
+            self.ab.profile.switch_to_user_profile(user_i)
 
             # 非公開ならskip
             if self.ab.profile.check_private():
                 continue
 
             # ターゲットのフォロワーへ遷移
-            self.ab.profile.switch_to_followers(user_i['insta_id'])
+            self.ab.profile.switch_to_followers(user_i)
 
             # 要求数以上はアクションしない
             actions_in_this_user = min(actions, actions - cnt)
 
-            # [フォロー中 or フォロワー] に表示されているユーザに対してアクションを仕込む
-            self.ab.logger.debug(f'フォロワーの探索を開始: {user_i["insta_id"]} アクション残: {cnt}/{actions}')
+            # [フォロワー] に表示されているユーザに対してアクションを仕込む
+            self.ab.logger.debug(f'フォロワーの探索を開始: {user_i} アクション残: {cnt}/{actions}')
             followed_cnt, fav_cnt, memo = self._follow_in_neighbors(actions_in_this_user, checked, fav_rate)
 
             cnt += (followed_cnt + fav_cnt)

@@ -78,7 +78,7 @@ NG_USER_SIZE = 1000  # 廃止予定
 HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO = 16, 23
 
 # 起動間隔を空ける時間（秒）
-BOOTING_INTERVAL_SECONDS = 60 * 60 * 2.5
+BOOTING_INTERVAL_SECONDS = 60 * 60 * 2
 
-# Dollの最大並列数（sqlite3のDeadLock や Instagramのブロック回避 で念のため）
+# Dollの最大並列数（Instagramのブロック回避？で念のため）
 DOLLS_PARALLEL_LIMIT = 5

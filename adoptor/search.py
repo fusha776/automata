@@ -66,7 +66,8 @@ class Search():
         Conditions:
             [検索結果]
         '''
-        photo_frame = self.driver.find_element_by_xpath('//article')
+        photo_frame = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
+            EC.element_to_be_clickable((By.XPATH, '//article')))
         photos = WebDriverWait(photo_frame, WAIT_LOADING_SECONDS).until(
             EC.element_to_be_clickable((By.XPATH, './/a[contains(@href, "/p/")]')))
         # clickable は単数しか取得できないので、要素の確認後に取りなおす
@@ -82,12 +83,15 @@ class Search():
 
     @loading
     @wait()
-    def load_popular_posts(self):
+    def load_popular_posts(self, max_post_size=3):
         '''[検索結果] に表示されている人気投稿を取得する
 
         WARN:
             上位n件は `人気投稿`, それ以降は `最新投稿` が並びます
             人気投稿をタグから弾くのがやりにくいので、上位n件を人気投稿とみなす方針でいきます
+
+        Args:
+            max_post_size (int): 取得する最大の人気投稿数
 
         Returns:
             str[]: 投稿詳細へのリンク
@@ -95,14 +99,15 @@ class Search():
         Conditions:
             [検索結果]
         '''
-        photo_frame = self.driver.find_element_by_xpath('//article')
+        photo_frame = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
+            EC.element_to_be_clickable((By.XPATH, '//article')))
         photos = WebDriverWait(photo_frame, WAIT_LOADING_SECONDS).until(
             EC.element_to_be_clickable((By.XPATH, './/a[contains(@href, "/p/")]')))
         # clickable は単数しか取得できないので、要素の確認後に取りなおす
         photos = self.driver.find_elements_by_xpath('.//a[contains(@href, "/p/")]')
 
         links = []
-        for photo in photos[:POPULAR_POSTS_NUM_IN_SEARCH]:
+        for photo in photos[:min(max_post_size, POPULAR_POSTS_NUM_IN_SEARCH)]:
             href = photo.get_attribute('href')
             links.append(href)
 
