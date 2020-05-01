@@ -19,7 +19,7 @@ DATABASE_PATH = 'd:/python/project/insta/tables/automata_db.sqlite3'
 LAKE_ROOT_PATH = 'c:/Users/bell/python/project/instagram/appium/lake'
 
 # パラメータjsonが格納されたディレクトリ
-DOLL_PARAMS_DIR = 'c:/Users/bell/python/project/insta_dev/doll_params'
+DOLL_PARAMS_DIR = 'c:/Users/bell/python/project/insta/doll_params'
 
 
 ###############
@@ -51,7 +51,7 @@ LOADING_NEIGHBORS_LIMIT = 100
 POPULAR_POSTS_NUM_IN_SEARCH = 9
 
 # プロフコメントに含まれていたら法人相当とみなす文字列
-HOJIN_KEYWORDS = ['院', '店', '屋', '公式', '副業', '収入', 'フォロワー', '仕事', '依頼', '稼', 'DM']
+HOJIN_KEYWORDS = ['院', '店', '屋', '公式', '副業', '収入', 'フォロワー', '仕事', '依頼', '稼', '予約', '営業']
 
 ###############
 # フォロー管理 #
@@ -81,4 +81,4 @@ HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO = 16, 23
 BOOTING_INTERVAL_SECONDS = 60 * 60 * 2.5
 
 # Dollの最大並列数（sqlite3のDeadLock や Instagramのブロック回避 で念のため）
-DOLLS_PARALLEL_LIMIT = 1
+DOLLS_PARALLEL_LIMIT = 5

@@ -33,7 +33,7 @@ class Conductor():
         active_dolls = self.ab.dao.load_active_dolls()
         self.ab.dao.conn.close()
 
-        if len(active_dolls) > DOLLS_PARALLEL_LIMIT:
+        if len(active_dolls) >= DOLLS_PARALLEL_LIMIT:
             self.ab.logger.info('active dolls has reached parallel limit.')
             return
 

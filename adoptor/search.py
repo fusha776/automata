@@ -76,6 +76,8 @@ class Search():
         for photo in photos[POPULAR_POSTS_NUM_IN_SEARCH:]:
             href = photo.get_attribute('href')
             links.append(href)
+
+        self.mediator.logger.debug(f'検索結果の画像を取得: 件数 -> {len(links)}')
         return links
 
     @loading
