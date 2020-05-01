@@ -254,13 +254,22 @@ class Following():
         website_btn = self.ab.profile.pick_website_btn()
 
         # 要素取得に失敗したらFalseで返却 (bool形式を除く)
-        if not (follower_cnt and following_cnt and bio_msg):
-            return False, "個人判定不可: 要素取得に失敗"
+        if not (follower_cnt and following_cnt):
+            return False, "個人判定不可: フォロー/ フォロワー 数の取得に失敗"
+        if not (bio_msg):
+            # 疑わしきは回避する方針
+            return False, "個人判定不可: bioの取得に失敗 or bio登録無し"
 
         is_valid = True
         reason_msg = "it seems good."
+        # 特定のキーワードをbioに含んでいる
+        if any([True for h_kw in HOJIN_KEYWORDS if h_kw in bio_msg]):
+            is_valid = False
+            hits_words = [h_kw for h_kw in HOJIN_KEYWORDS if h_kw in bio_msg]
+            reason_msg = f"法人判定: 特定キーワードをbioに含んでいる. keywords: {hits_words}"
+
         # 所定値よりフォロワー数が多い
-        if follower_cnt >= FOLLOWER_UPPER_LIMIT:
+        elif follower_cnt >= FOLLOWER_UPPER_LIMIT:
             is_valid = False
             reason_msg = "法人判定: フォロワー数が閾値超え"
 
@@ -268,11 +277,6 @@ class Following():
         elif follower_cnt/(following_cnt + 1) > 2:
             is_valid = False
             reason_msg = "法人判定: フォロー中/フォロワー数 比率が大きい"
-
-        # 特定のキーワードをプロフ文に含んでいる
-        elif any([True for h_kw in HOJIN_KEYWORDS if h_kw in bio_msg]):
-            is_valid = False
-            reason_msg = "法人判定: 特定キーワードをプロフ文に含んでいる"
 
         # 外部websiteが登録されている
         elif website_btn:
@@ -301,10 +305,17 @@ class Following():
         for kw in keywords_shuffled:
             self.ab.logger.debug(f'次のキーワード検索 - 開始: {kw} アクション残: {fav_cnt + followed_cnt}/{actions}')
             self.ab.search.search_tags(kw)
+
+            fav_skip_cnt = 0
             for img_link in self.ab.search.load_imgs():
                 # 必要分のアクションが終わったら離脱
                 if (followed_cnt + fav_cnt) >= actions:
                     is_enough = True
+                    break
+
+                # fav が連続して弾かれたら新規投稿枯渇とみなして次のkeywordへ移動
+                if fav_skip_cnt >= 3:
+                    self.ab.logger.debug('fav済が続くため、新規投稿枯渇とみなして次のkeywordへ移動')
                     break
 
                 self.ab.driver.get(img_link)
@@ -314,14 +325,17 @@ class Following():
                 is_private = False
                 if random.random() <= fav_rate:
                     # fav
-                    fav_cnt += int(self.ab.post.fav())
+                    if self.ab.post.fav():
+                        fav_cnt += 1
+                        fav_skip_cnt = 0
+                    else:
+                        fav_skip_cnt += 1
                     self.ab.logger.debug(f'アクション fav: {insta_id_i}, cnt is 1')
                 else:
                     # follow
                     self.ab.profile.switch_to_user_profile(insta_id_i)
                     # 個人アカか確かめる
                     is_valid, reason_msg = self.check_kojin()
-                    print(is_valid, reason_msg)
                     if is_valid:
                         # フォローをトライする (フォローバックはしない)
                         has_followed = self.ab.profile.follow(insta_id_i)
