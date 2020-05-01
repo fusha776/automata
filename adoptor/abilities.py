@@ -65,7 +65,7 @@ class Abilities():
         '''Dollの終了処理
         '''
         # driverを真っ先に落とす. profileがロックされてると次の起動も失敗する.
-        self.driver.close()
+        # self.driver.close()
         self.driver.quit()
 
         self.dao.unlock_doll_status()
