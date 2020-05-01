@@ -35,16 +35,34 @@ class Following():
         random.shuffle(userlists)
         return userlists
 
-    def follow_friends_neighbors(self, actions, my_friends=None, fav_rate=0.7, max_user_times=50):
-        '''指定アカの フォロワー の フォロー中 をフォローする（ややこしい）
-        指定 (my_friends) がある: 指定アカの フォロー中アカの フォロワー へアクション
-        指定 (my_friends) がない: 自アカの フォロー中アカの フォロワー へアクション
+    def load_popular_post_userlist(self, hash_tag):
+        '''タグ検索から、人気投稿のユーザリストを取得する
+        取得アカ数は表示される9アカから取得できた分で固定
+        '''
+        self.ab.search.switch_to_search_home()
+        self.ab.search.search_tags(hash_tag)
+
+        popular_ids = []
+        for img_link in self.ab.search.load_popular_posts():
+            self.ab.driver.get(img_link)
+            insta_id_i = self.ab.post.estimate_insta_id()
+
+            # 取得成功と参照可能をチェックする
+            self.ab.profile.switch_to_user_profile(insta_id_i)
+            follower_cnt = self.ab.profile.pick_follower_num()
+            following_cnt = self.ab.profile.pick_following_num()
+            if follower_cnt and following_cnt:
+                popular_ids.append(insta_id_i)
+        return popular_ids
+
+    def follow_friends_neighbors(self, actions, my_friends, fav_rate=0.7, max_user_times=50):
+        '''指定アカのフォロワーをフォローする
 
         Args:
             actions (int): 実行する action の回数
-            my_friends (dict[]): フォロワーの探索を開始する元ユーザのリスト
+            my_friends (str[]): フォロワーの探索を開始する元アカウント
             fav_rate (float): フォローの代わりにfavする確率
-            max_user_times (int): 自分のフォロワーを探索する最大回数（エラーループ防止）
+            max_user_times (int): 元アカを探索する最大回数（エラーループ防止）
 
         WARN:
             インスタグラムの Action Block が厳しい
@@ -71,14 +89,10 @@ class Following():
         checked.update(skipped_follow)
         checked.update(skipped_touch)
 
-        # friendが渡されていれば、フォロワーを辿る開始IDをランダムに採用する
-        starting_login_id = self.ab.login_id
-        if my_friends:
-            starting_login_id = random.choice(my_friends)['insta_id']
-        starting_neighbors = self.load_followers_as_userlist(starting_login_id, max_user_times)
-
+        # 同じfriendに偏らないようにshuffleする
         cnt = 0
-        for user_i in starting_neighbors[:max_user_times]:
+        friends_shuffled = random.sample(my_friends, len(my_friends))
+        for user_i in friends_shuffled[:max_user_times]:
             if cnt >= actions:
                 self.ab.logger.debug(f'必要分のアクションが完了:  稼働アクション数:{cnt} > 要求アクション数:{actions}')
                 break
@@ -93,12 +107,13 @@ class Following():
             # ターゲットのフォロワーへ遷移
             self.ab.profile.switch_to_followers(user_i['insta_id'])
 
-            # 一人のフォロワーから辿れるアクション数に最大値を設定する
+            # 要求数以上はアクションしない
             actions_in_this_user = min(actions, actions - cnt)
 
             # [フォロー中 or フォロワー] に表示されているユーザに対してアクションを仕込む
             self.ab.logger.debug(f'フォロワーの探索を開始: {user_i["insta_id"]} アクション残: {cnt}/{actions}')
             followed_cnt, fav_cnt, memo = self._follow_in_neighbors(actions_in_this_user, checked, fav_rate)
+
             cnt += (followed_cnt + fav_cnt)
             checked.update(memo)
         self.ab.logger.debug('end operation: 対象ユーザの近隣を follow or fav')
@@ -307,7 +322,7 @@ class Following():
             self.ab.search.search_tags(kw)
 
             fav_skip_cnt = 0
-            for img_link in self.ab.search.load_imgs():
+            for img_link in self.ab.search.load_latest_posts():
                 # 必要分のアクションが終わったら離脱
                 if (followed_cnt + fav_cnt) >= actions:
                     is_enough = True

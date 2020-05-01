@@ -24,10 +24,14 @@ class NineJapan(Doll):
         # 同じfriendが連続しないようにシャッフルする
         random.shuffle(self.params['my_friends'])
 
-        # 1. ターゲットの隣人をフォロー or fav
+        # 1. ターゲットの隣人の隣人をフォロー or fav
         if self.params['actions_ff'] > 0:
+            if self.params['my_friends']:
+                starting_neighbors = self.facade.following.load_followers_as_userlist(random.choice(self.params['my_friends']))
+            else:
+                starting_neighbors = self.facade.following.load_followers_as_userlist(self.facade.abilities.login_id)
             self.facade.following.follow_friends_neighbors(self.params['actions_ff'],
-                                                           self.params['my_friends'],
+                                                           starting_neighbors,
                                                            self.params['fav_rate'],
                                                            self.params['max_user_times'])
 
