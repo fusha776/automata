@@ -44,6 +44,7 @@ class Conductor():
         self.ab.logger.info(f'doll {doll_id} starts up.')
         os_chip = self.load_dolls_os_chip(class_name)
         os_chip(doll_id).run()
+        self.ab.logger.info(f'doll {doll_id} finished.')
 
     def select_doll(self):
         '''一時的にDBへつなぎ、当日のアクション状況と最終実行日時から起動するdollを決定する

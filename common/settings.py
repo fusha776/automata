@@ -45,13 +45,13 @@ WAIT_LOADING_SECONDS = 20
 FOLLOWER_UPPER_LIMIT = 10000
 
 # フォロワー or フォロー中をロードする最大数（大きいとAPI制限の引っかかりやすさが跳ね上がる）
-LOADING_NEIGHBORS_LIMIT = 100
+LOADING_NEIGHBORS_LIMIT = 50
 
 # [検索結果] で、人気投稿の表示される件数（リンク取得からskipする画像の件数）
 POPULAR_POSTS_NUM_IN_SEARCH = 9
 
 # プロフコメントに含まれていたら法人相当とみなす文字列
-HOJIN_KEYWORDS = ['院', '店', '屋', '公式', '副業', '収入', 'フォロワー', '仕事', '依頼', '稼', '予約', '営業']
+HOJIN_KEYWORDS = ['院', '店', '屋', '公式', '副業', '収入', 'フォロワー', '仕事', '稼', '予約', '営業']
 
 ###############
 # フォロー管理 #

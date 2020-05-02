@@ -1,5 +1,6 @@
 import random
 from automata.common.settings import FOLLOWER_UPPER_LIMIT, HOJIN_KEYWORDS
+from automata.common.utils import would_be_japanese
 
 
 class Following():
@@ -299,7 +300,7 @@ class Following():
 
         return is_valid, reason_msg
 
-    def follow_by_searching(self, actions, keywords, fav_rate=0.7):
+    def follow_by_searching(self, actions, keywords, fav_rate=0.7, only_japanese=True):
         '''投稿検索で見つけたフォロワーをフォローする
 
         followは個人アカか確かめるけど、favは未確認でも良いでしょう
@@ -338,7 +339,6 @@ class Following():
                 # 同一アクションの連続はブロックの危険があがるので、fav or follow をランダムで変える
                 is_private = False
                 if random.random() <= fav_rate:
-                    # fav
                     if self.ab.post.fav():
                         fav_cnt += 1
                         fav_skip_cnt = 0
@@ -346,12 +346,14 @@ class Following():
                         fav_skip_cnt += 1
                     self.ab.logger.debug(f'アクション fav: {insta_id_i}, cnt is 1')
                 else:
-                    # follow
+                    if only_japanese:
+                        if not would_be_japanese(self.ab.post.read_post_msg()):
+                            self.ab.logger.debug(f'投稿コメントが日本語と推定できないためskip: {insta_id_i}')
+                            continue
+
                     self.ab.profile.switch_to_user_profile(insta_id_i)
-                    # 個人アカか確かめる
                     is_valid, reason_msg = self.check_kojin()
                     if is_valid:
-                        # フォローをトライする (フォローバックはしない)
                         has_followed = self.ab.profile.follow(insta_id_i)
                         self.ab.logger.debug(f'アクション follow: {insta_id_i}')
                         if has_followed:

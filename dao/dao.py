@@ -425,6 +425,16 @@ class Dao():
         '''
         with self.conn.cursor() as cursor:
             cursor.execute('''
+                WITH today_actions as (
+                    SELECT
+                        doll_id, post, dm, fav, follow,
+                        unfollow, others, summary_cnt, is_blocked
+                    FROM
+                        action_counters
+                    WHERE
+                        operated_on = %s
+                )
+
                 SELECT
                     t1.doll_id,
                     t2.doll_class,
@@ -436,13 +446,13 @@ class Dao():
                 FROM
                     doll_status t1
                         LEFT JOIN doll_settings t2 ON t1.doll_id = t2.doll_id
-                        LEFT JOIN action_counters t3 ON t1.doll_id = t3.doll_id
+                        LEFT JOIN today_actions t3 ON t1.doll_id = t3.doll_id
                 WHERE
                     t1.is_running = 0 and
                     t2.fav_per_day + t2.follow_per_day + t2.unfollow_per_day > ifnull(t3.fav, 0) + ifnull(t3.follow, 0) + ifnull(t3.unfollow, 0)
                 ORDER BY
                     t1.last_booted_at
-                ''')
+                ''', (self.today,))
             res = cursor.fetchone()
         return res
 
