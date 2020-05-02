@@ -99,6 +99,25 @@ class Modal():
 
     @loading
     @wait()
+    def check_login_fault(self):
+        '''id/pass のログイン失敗を確認し、該当していたらエラーを発生させる
+        ブロック判定にして当日実行を止めておかないと、起動するたびに何度もログイン失敗してしまいます
+
+        WARN:
+            パスワードが変更されていると、ホームに飛ぼうとしたときにログインが表示される
+            初回はモーダルを出さずにテキストを埋めてくる
+            2回目以降？はモーダルが出るけど、パスワードミスの回数によって文言が変わるので注意
+        '''
+
+        fault_msg = self.driver.find_elements_by_xpath('//*[contains(text(), "アカウントと一致しません")]')
+        fault_dialog = self.driver.find_elements_by_xpath('//*[contains(text(), "パスワード")]')
+        if fault_msg or fault_dialog:
+            self.mediator.dao.put_blocked_mark()
+            self.mediator.logger.error('所定の id/pass によるログイン失敗を検知. ブロック相当として起動停止します.')
+            raise Exception
+
+    @loading
+    @wait()
     def press_logout(self):
         '''ログアウトボタンを押す
         '''

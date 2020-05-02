@@ -38,7 +38,7 @@
 
 ### プロファイルのディレクトリを指定してChromeを起動
 
-"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\Users\bell\python\project\insta\chrome_profiles" --disk-cache-size="104857600" 
+"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --user-data-dir="C:\Users\bell\python\project\insta\chrome_profiles" --disk-cache-size="52428800" 
 
 
 ### ajaxを一時停止

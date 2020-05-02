@@ -1,3 +1,4 @@
+from time import sleep
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -21,6 +22,8 @@ class Web():
         '''
         self.driver.get('https://www.instagram.com/')
         self.check_logined()
+        # 画面ロード or モーダル表示を待つ
+        sleep(3)
 
     @loading
     def check_logined(self):
@@ -38,9 +41,6 @@ class Web():
     @wait()
     def login(self):
         '''ログインする
-
-        WARN:
-            初回ログイン後のなんか履歴保存する？みたいなやつをさばけてないので何とかしてほしい
         '''
         id_input = self.driver.find_element_by_xpath('//input[contains(@type, "text")]')
         id_input.send_keys(self.login_id)
@@ -51,3 +51,6 @@ class Web():
         login_btn = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
             EC.element_to_be_clickable((By.XPATH, '//button[contains(@type, "submit")]')))
         login_btn.click()
+
+        # ログイン失敗をチェック
+        self.mediator.modal.check_login_fault()

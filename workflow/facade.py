@@ -22,4 +22,3 @@ class Facade():
 
     def switch_to_instagram_home(self):
         self.abilities.web.switch_to_instagram_home()
-        sleep(3)
