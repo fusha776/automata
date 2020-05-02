@@ -9,8 +9,10 @@ class NineJapan(Doll):
 
     def operate(self):
         # 初期パラメータのセット
-        defaults = {'actions_ff': 0,
-                    'actions_search_ff': 0,
+        defaults = {'actions_friend_neighbors': 0,
+                    'actions_friend_following_neighbors': 0,
+                    'actions_popular_post_neighbors': 0,
+                    'actions_tags_search': 0,
                     'actions_unfollow': 0,
                     'actions_unfollow_no_fb': 0,
                     'fav_rate': 1.0,
@@ -24,16 +26,28 @@ class NineJapan(Doll):
         # 同じfriendが連続しないようにシャッフルする
         random.shuffle(self.params['my_friends'])
 
-        # 1. ターゲットの隣人をフォロー or fav
-        if self.params['actions_ff'] > 0:
-            self.facade.following.follow_friends_neighbors(self.params['actions_ff'],
-                                                           self.params['my_friends'],
+        # 1. ターゲットのフォロー中のフォロー中をフォロー or fav
+        if self.params['actions_friend_following_neighbors'] > 0:
+            if self.params['my_friends']:
+                starting_neighbors = self.facade.following.load_followings_as_userlist(random.choice(self.params['my_friends']))
+            else:
+                starting_neighbors = self.facade.following.load_followings_as_userlist(self.facade.abilities.login_id)
+            self.facade.following.follow_friends_neighbors(self.params['actions_friend_following_neighbors'],
+                                                           starting_neighbors,
+                                                           self.params['fav_rate'],
+                                                           self.params['max_user_times'])
+
+        # 1. 人気投稿アカのフォロー中をフォロー or fav
+        if self.params['actions_popular_post_neighbors'] > 0:
+            starting_neighbors = self.facade.following.load_popular_post_userlist(random.choice(self.params['search_keywords']))
+            self.facade.following.follow_friends_neighbors(self.params['actions_popular_post_neighbors'],
+                                                           starting_neighbors,
                                                            self.params['fav_rate'],
                                                            self.params['max_user_times'])
 
         # 2. 検索結果の最新投稿アカをフォロー or fav
-        if self.params['actions_search_ff'] > 0:
-            self.facade.following.follow_by_searching(self.params['actions_search_ff'],
+        if self.params['actions_tags_search'] > 0:
+            self.facade.following.follow_by_searching(self.params['actions_tags_search'],
                                                       self.params['search_keywords'],
                                                       self.params['fav_rate'])
 

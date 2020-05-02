@@ -78,3 +78,34 @@ class Post():
             if tag_text in link:
                 a_cnts[tag_text] += 1
         return max(a_cnts, key=a_cnts.get)
+
+    def read_post_msg(self):
+        '''投稿コメントを取得する
+
+        WARN:
+            投稿コメント無しの場合はタグが生成されない
+            投稿コメント無し & レス有り の場合、レスを取得してしまうけどレアケースとして保留にしておきます
+
+        Returns:
+            str: 投稿コメント
+
+        Conditions:
+            [投稿写真 or 投稿動画]
+        '''
+        self.push_read_more_btn()
+        msg_tags = self.driver.find_elements_by_xpath('//div[contains(@data-testid, "post-comment-root")]/span/span')
+        if msg_tags:
+            return msg_tags[0].text
+        return None
+
+    @wait(1)
+    def push_read_more_btn(self):
+        '''続きを読むボタンを押す
+
+        Conditions:
+            [投稿写真 or 投稿動画]
+        '''
+        self.driver.execute_script('window.scrollBy(0, 300)')
+        more_btn = self.driver.find_elements_by_xpath('//button[contains(text(), "続きを読む")]')
+        if more_btn:
+            more_btn[0].click()

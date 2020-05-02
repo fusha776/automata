@@ -1,3 +1,4 @@
+import re
 from random import random
 from time import sleep
 from selenium.webdriver.support.ui import WebDriverWait
@@ -21,6 +22,7 @@ def wait(waiting_seconds=ACTION_WAIT_SECONDS):
 
 def loading(func):
     '''画面のロード完了を一定秒待機する（デコレータ）
+    非同期処理で画面生成されるから、ロードとページ生成の完了が一致しない点がやりにくい
     '''
 
     def wrapper(self, *args, **kwargs):
@@ -33,6 +35,26 @@ def loading(func):
                     self.mediator.logger.debug('page loading failed.')
         return func(self, *args, **kwargs)
     return wrapper
+
+
+def would_be_japanese(msg, omit_hashtags=True):
+    '''文字列が日本語で書かれているか推定する
+
+    判定基準：
+        ハッシュタグを除去した後の文字列に、ひらがな or カタカナ を1文字以上含む
+        何文字以上にするかは悩みどころ
+
+    Args:
+        msg (str): 判定対象の文字列
+        omit_hashtags (bool): True -> ハッシュタグ相当 (# が出現した以降の文字列) を除去する
+    '''
+    if omit_hashtags:
+        msg_cleaned = msg.split('#')[0]
+    else:
+        msg_cleaned = msg
+
+    hit_words = re.findall(r'[ぁ-んァ-ン]', msg_cleaned)
+    return len(hit_words) >= 1
 
 
 def backup_ajax(driver):
