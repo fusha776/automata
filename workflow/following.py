@@ -7,8 +7,10 @@ class Following():
     '''フォロー追加回りを管理
     '''
 
-    def __init__(self, abilities):
+    def __init__(self, abilities, following_status_repository, recent_touched_histories_repository):
         self.ab = abilities
+        self.following_status_repository = following_status_repository
+        self.recent_touched_histories_repository = recent_touched_histories_repository
 
     def load_followings_as_userlist(self, target_id, rec_size=50):
         '''対象ユーザのフォロワーからユーザリストを生成
@@ -81,9 +83,9 @@ class Following():
         self.ab.profile.switch_to_following(self.ab.login_id)
 
         # 検索対象から除外する: automataがフォロー, 直近タッチ有り
-        skipped_follow = self.ab.dao.fetch_valid_followings()
+        skipped_follow = self.following_status_repository.fetch_valid_followings()
         skipped_follow = set([u['instagram_id'] for u in skipped_follow])
-        skipped_touch = self.ab.dao.load_recent_touched_users()
+        skipped_touch = self.recent_touched_histories_repository.load_recent_touched_users()
         skipped_touch = {u['instagram_id'] for u in skipped_touch}
         checked = set([self.ab.login_id])
         checked.update(skipped_follow)
@@ -172,10 +174,10 @@ class Following():
                 break
             # フォロー中ならskip
             if ('フォロー中' in user_i['follow_msg']):
-                self.ab.dao.add_recent_touched_user(insta_id_i, None)
+                self.recent_touched_histories_repository.add_recent_touched_user(insta_id_i, None)
                 continue
             elif ('リクエスト済み' in user_i['follow_msg']):
-                self.ab.dao.add_recent_touched_user(insta_id_i, 1)
+                self.recent_touched_histories_repository.add_recent_touched_user(insta_id_i, 1)
                 continue
 
             # プロフィールへ
@@ -186,7 +188,7 @@ class Following():
             if not is_valid:
                 error_cnt += 1
                 is_private = True if '鍵アカ' in reason_msg else False
-                self.ab.dao.add_recent_touched_user(insta_id_i, int(is_private))
+                self.recent_touched_histories_repository.add_recent_touched_user(insta_id_i, int(is_private))
                 self.ab.logger.debug(f'無効なユーザ: {insta_id_i}, {reason_msg}')
                 continue
 
@@ -207,7 +209,7 @@ class Following():
                 if has_followed:
                     followed_cnt += 1
                     error_cnt = 0
-            self.ab.dao.add_recent_touched_user(insta_id_i, 0)
+            self.recent_touched_histories_repository.add_recent_touched_user(insta_id_i, 0)
 
         self.ab.logger.debug(f'フォロワーの探索を終了: 追加アクション計: follow -> {followed_cnt}, fav -> {fav_cnt}')
         return followed_cnt, fav_cnt, checked
@@ -361,7 +363,7 @@ class Following():
                     else:
                         is_private = True if '鍵アカ' in reason_msg else False
                         self.ab.logger.debug(f'無効なユーザ: {insta_id_i}, {reason_msg}')
-                self.ab.dao.add_recent_touched_user(insta_id_i, int(is_private))
+                self.recent_touched_histories_repository.add_recent_touched_user(insta_id_i, int(is_private))
             self.ab.logger.debug(f'次のキーワード検索 - 終了: keyword -> {kw}, follow -> {followed_cnt}, fav -> {fav_cnt}')
             if is_enough:
                 break

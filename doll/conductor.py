@@ -1,7 +1,11 @@
 from datetime import datetime
-from automata.adoptor.abilities import Abilities
 from automata.doll.collector import Collector
 from automata.common.settings import HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO, BOOTING_INTERVAL_SECONDS, DOLLS_PARALLEL_LIMIT
+from automata.common.utils import generate_logger
+from automata.common.connection_factory import ConnectionFactory
+
+from automata.repository.doll_query import DollQuery
+from automata.repository.doll_status import DollStatusRepository
 
 # 文字列 -> クラス の取得で使用しています
 from automata.doll.nine_japan import NineJapan
@@ -16,11 +20,15 @@ class Conductor():
     '''
 
     def __init__(self, test_doll_id=None, test_doll_chips=None):
-        self.today = datetime.now().strftime('%Y%m%d')
         self.test_doll_id = test_doll_id
         self.test_doll_chips = test_doll_chips
-        self.ab = Abilities('conductor')
-        self.ab.setup_master()
+        self.today = datetime.now().strftime('%Y%m%d')
+        self.logger = generate_logger('conductor', self.today)
+
+        # DBセッションを生成. 実行ファイルの修正を頻度避けるため、Doll以外のRepositoryは埋め込んでしまう
+        self.conn = ConnectionFactory.get_conn()
+        self.doll_query = DollQuery(self.conn, 'condoctor', self.today)
+        self.doll_status_repository = DollStatusRepository(self.conn, 'condoctor', self.today)
 
     def activate_doll(self):
         '''dollを起動して実行する
@@ -30,21 +38,19 @@ class Conductor():
             sqlite3は同時接続に強くないらしいので、使い終わったらconnを早めに閉じておく
         '''
         doll_id, class_name = self.select_doll()
-        active_dolls = self.ab.dao.load_active_dolls()
-        self.ab.dao.conn.close()
+        active_dolls = self.doll_status_repository.load_active_dolls()
 
         if len(active_dolls) >= DOLLS_PARALLEL_LIMIT:
-            self.ab.logger.info('active dolls has reached parallel limit.')
+            self.logger.info('active dolls has reached parallel limit.')
             return
-
         if not doll_id:
-            self.ab.logger.info('there is no doll to activate.')
+            self.logger.info('there is no doll to activate.')
             return
 
-        self.ab.logger.info(f'doll {doll_id} starts up.')
+        self.logger.info(f'doll {doll_id} starts up.')
         os_chip = self.load_dolls_os_chip(class_name)
-        os_chip(doll_id).run()
-        self.ab.logger.info(f'doll {doll_id} finished.')
+        os_chip(doll_id, self.conn, self.today).run()
+        self.logger.info(f'doll {doll_id} finished.')
 
     def select_doll(self):
         '''一時的にDBへつなぎ、当日のアクション状況と最終実行日時から起動するdollを決定する
@@ -56,18 +62,15 @@ class Conductor():
         def load_next_doll_except_daily_blocked():
             '''当日ブロック中のDollを避けて次に起動するDollを取得する
             '''
-            next_doll = self.ab.dao.load_next_sleeping_doll()
+            next_doll = self.doll_query.load_next_sleeping_doll()
             if not next_doll:
                 return None
 
-            # 当日ブロック有りならskip
+            # 当日ブロック有りなら最終起動時間を更新し、別のDollを呼び出す
             if ((next_doll['is_blocked'] == 1) and
                     next_doll['last_booted_at'].strftime('%Y%m%d') == self.today):
-                # 最終起動時間を更新し、別のDollを呼び出す
-                self.ab.dao.update_last_booted_dt(next_doll['doll_id'])
+                self.doll_status_repository.update_booted_dt(next_doll['doll_id'])
                 return load_next_doll_except_daily_blocked()
-
-            # 有効なDollを取得
             return next_doll
 
         # デバッグ動作なら即返却
@@ -100,11 +103,12 @@ class Conductor():
             return
 
         # アクションを集計
-        collector = Collector(self.today)
-        collector.save_action_results()
+        collector = Collector(self.conn, self.today, self.today)
+        collector.save()
 
     def execute(self):
         '''dollの生成と結果カウントを実行する
         '''
         self.activate_doll()
         self.count_results()
+        self.conn.close()

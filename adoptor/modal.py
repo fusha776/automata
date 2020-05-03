@@ -8,10 +8,13 @@ class Modal():
     そのままブラウザ落としたら次は聞いてこないから、エラー落ちとリランで無理やり逃げる手もある
     '''
 
-    def __init__(self, mediator):
+    def __init__(self, mediator, action_counters_repository, doll_status_repository):
         self.mediator = mediator
         self.driver = self.mediator.driver
         self.login_id = self.mediator.doll_conf.login_id
+
+        self.action_counters_repository = action_counters_repository
+        self.doll_status_repository = doll_status_repository
 
     def turn_on(self):
         '''出現しているモーダルに Yes と返答して消す
@@ -93,7 +96,8 @@ class Modal():
         '''
         block_dialog = self.driver.find_elements_by_xpath('//*[contains(text(), "ブロックされています")]')
         if block_dialog:
-            self.mediator.dao.put_blocked_mark()
+            self.action_counters_repository.set_blocked_mark()
+            self.doll_status_repository.set_blocked_mark()
             self.mediator.logger.error('アクションブロックを検知. 起動停止します.')
             raise Exception
 
@@ -112,7 +116,8 @@ class Modal():
         fault_msg = self.driver.find_elements_by_xpath('//*[contains(text(), "アカウントと一致しません")]')
         fault_dialog = self.driver.find_elements_by_xpath('//*[contains(text(), "パスワード")]')
         if fault_msg or fault_dialog:
-            self.mediator.dao.put_blocked_mark()
+            self.action_counters_repository.set_blocked_mark()
+            self.doll_status_repository.set_blocked_mark()
             self.mediator.logger.error('所定の id/pass によるログイン失敗を検知. ブロック相当として起動停止します.')
             raise Exception
 

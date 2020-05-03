@@ -10,10 +10,12 @@ class Search():
     '''投稿関連の動作を制御するクラス
     '''
 
-    def __init__(self, mediator):
+    def __init__(self, mediator, action_counters_repository):
         self.mediator = mediator
         self.driver = self.mediator.driver
         self.login_id = self.mediator.doll_conf.login_id
+
+        self.action_counters_repository = action_counters_repository
 
     @loading
     @wait()
@@ -142,5 +144,5 @@ class Search():
         self.mediator.modal.check_action_block()
 
         # アクション回数を更新
-        self.mediator.dao.increase_action_count({'fav': 1})
+        self.action_counters_repository.increase_action_count({'fav': 1})
         return True

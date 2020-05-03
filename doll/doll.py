@@ -1,20 +1,25 @@
-import os
 import json
-import pathlib
-from time import sleep
 from datetime import datetime
 from automata.workflow.facade import Facade
 from automata.common.settings import DOLL_PARAMS_DIR
-# from automata.workflow.workflow import WorkFlow
-# from automata.common.exception import ActionBlockException
+
+from automata.repository.doll_status import DollStatusRepository
 
 
 class Doll():
     '''アクションフローを制御するクラス
+
+    Args:
+        doll_id (str): 起動する Doll の id
+        conn (Connection): DBへのコネクション
     '''
 
-    def __init__(self, doll_id):
+    def __init__(self, doll_id, conn, today):
         self.doll_id = doll_id
+        self.today = today
+        self.conn = conn
+
+        self.doll_status_repository = DollStatusRepository(self.conn, self.doll_id, self.today)
 
     def operate(self):
         '''各doll別のworkflow動作を設定する
@@ -28,7 +33,7 @@ class Doll():
 
         パラメータファイルは `実装class名.json` でガチガチに命名規約が決まってるので注意
         '''
-        self.facade = Facade(doll_id=self.doll_id)
+        self.facade = Facade(self.doll_id, self.conn, self.today)
 
         with open(f'{DOLL_PARAMS_DIR}/{self.__class__.__name__}.json', 'r', encoding='utf8') as f:
             self.params = json.load(f)[self.doll_id]
@@ -79,7 +84,7 @@ class Doll():
     def check_block_status(self):
         '''前日ブロックだったら再ログインする
         '''
-        is_blocked = self.facade.abilities.dao.load_block_status()['is_blocked']  # bool(1) -> True
+        is_blocked = self.doll_status_repository.load_block_status()['is_blocked']  # bool(1) -> True, bool(0) -> False
         if is_blocked:
             self._relogin()
 
@@ -97,31 +102,16 @@ class Doll():
 
         # ここまで成功したらDB更新
         self.facade.abilities.logger.debug(f'ブロック状態のため再ログインを実施')
-        self.facade.abilities.dao.reset_blocked_mark()
+        self.doll_status_repository.reset_blocked_mark()
 
     @classmethod
-    def save_results(cls, dao, logger, target_day, doll_group):
-        '''アクションの集計を出力する
-        '''
-        actions = dao.load_daily_action_results(doll_group, target_day)
-        msg = cls.format(target_day, actions)
-
-        pathlib.Path(f'./results/{target_day}').mkdir(parents=True, exist_ok=True)
-        result_path = f'./results/{target_day}/{doll_group}_{target_day}.txt'
-        if not os.path.exists(result_path):
-            with open(result_path, 'w', encoding='utf8') as f:
-                f.write(msg)
-                logger.info('result is saved.')
-        else:
-            logger.info('result was already saved.')
-
     @classmethod
     def format(cls, target_day, doll_records):
         '''レコードを受け取って出力テキストへ整形する
 
         Args:
             target_day (str): アクション集計対象日
-            doll_records (Row[]): アクションが集計されたdoll毎のレコード. 取得できるカラムは以下.
+            doll_records (dict[]): アクションが集計されたdoll毎のレコード. 取得できるカラムは以下.
 
             login_id,　label, client, doll_group,
             post, dm, fav, follow, unfollow, others, summary_cnt, is_blocked}

@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from random import random, shuffle
 from automata.common.settings import FLLOWING_ALIVE_DAYS
 
 
@@ -7,8 +6,10 @@ class Unfollowing():
     '''アンフォロー追加回りを管理
     '''
 
-    def __init__(self, abilities):
+    def __init__(self, abilities, following_status_repository, recent_touched_histories_repository):
         self.ab = abilities
+        self.following_status_repository = following_status_repository
+        self.recent_touched_histories_repository = recent_touched_histories_repository
 
     def unfollow_expires_users(self, actions):
         '''フォローしてから一定期間を超えたユーザをアンフォローする
@@ -23,7 +24,7 @@ class Unfollowing():
             Returns:
                 str[]: アンフォロー対象のインスタID
             '''
-            users_and_days = self.ab.dao.fetch_valid_followings()
+            users_and_days = self.following_status_repository.fetch_valid_followings()
             expires_date = datetime.now() - timedelta(days=FLLOWING_ALIVE_DAYS)
 
             users_to_unfollow = []
@@ -44,9 +45,10 @@ class Unfollowing():
 
     def unfollow_no_followbacks(self, actions, user_size_to_check=100):
         '''フォロバ無しのアカウントを、フォロワー一覧の表示順で外していく
+        automata関与外のフォロワー制御に使用する
 
         WARN:
-            自動フォロー系と混ぜるな危険！！
+            automata自動フォロー系と混ぜるな危険！！
             アクション履歴も共用してるし、自動・手動でフォロー状況管理の同期も取ってない
 
         フォローバック確認：
@@ -61,7 +63,7 @@ class Unfollowing():
         self.ab.profile.switch_to_following(self.ab.login_id)
 
         # 新規確認のユーザ集合を必要分を保証するように回収する
-        touched_users = self.ab.dao.load_recent_touched_users()
+        touched_users = self.recent_touched_histories_repository.load_recent_touched_users()
         touched_users = {u['instagram_id'] for u in touched_users}
         new_usersets = self.ab.profile.read_neighbor_datasets_on_order(user_size_to_check, touched_users)
         new_usersets = {u['insta_id'] for u in new_usersets}
@@ -82,7 +84,7 @@ class Unfollowing():
                 unfollowed_cnt += 1
             else:
                 self.ab.logger.debug(f'鍵アカをskip: {insta_id_i}')
-                self.ab.dao.add_recent_touched_user(insta_id_i, 1)
+                self.recent_touched_histories_repository.add_recent_touched_user(insta_id_i, 1)
                 continue
 
             # フォローバックされてたら再フォローする
@@ -94,7 +96,7 @@ class Unfollowing():
                 self.ab.logger.debug(f'フォロバ無しをリム: {insta_id_i}')
 
             # 確認済アカとしてテーブルへ追加する処理
-            self.ab.dao.add_recent_touched_user(insta_id_i, None)
+            self.recent_touched_histories_repository.add_recent_touched_user(insta_id_i, None)
 
         self.ab.logger.debug(f'end operation: フォロバ無しをアンフォロー: 追加アクション計: follow -> {followed_cnt}, unfollow -> {unfollowed_cnt}')
         return followed_cnt, unfollowed_cnt

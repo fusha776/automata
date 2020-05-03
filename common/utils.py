@@ -1,4 +1,7 @@
 import re
+import os
+import pathlib
+from logging import getLogger, StreamHandler, FileHandler, Formatter, DEBUG
 from random import random
 from time import sleep
 from selenium.webdriver.support.ui import WebDriverWait
@@ -111,7 +114,7 @@ def close_ajax(driver):
 def reopen_ajax(driver):
     '''ajax通信を復旧する
 
-    オブジェクトのbackup有無を確認していないので、事前に close_ajax() が実行されている必要がある
+    オブジェクトのbackup有無を確認していないので、事前に backup_ajax() が実行されている必要がある
     '''
     # ajaxのバックアップが見つからない場合は実行不可
     try:
@@ -120,3 +123,38 @@ def reopen_ajax(driver):
         raise e
 
     driver.execute_script("XMLHttpRequest.prototype.send=window.oSend")
+
+
+def generate_logger(doll_id, today):
+    '''所定フォーマットのロガーと出力先を生成
+    '''
+    def create_dir_and_log():
+        '''必要なディレクトリ, 当日のログファイルが無ければ生成
+
+        Returns:
+            str: 当日のログファイルのpath
+        '''
+        log_dir = f'./log/{doll_id}'
+        ss_dir = f'./log/{doll_id}/screenshots'
+        pathlib.Path(log_dir).mkdir(parents=True, exist_ok=True)
+        pathlib.Path(ss_dir).mkdir(parents=True, exist_ok=True)
+        log_path = f'{log_dir}/replay_{today}.log'
+        if not os.path.exists(log_path):
+            pathlib.Path(log_path).touch()
+        return log_path
+
+    log_path = create_dir_and_log()
+    fmt = "%(asctime)s %(levelname)s [%(name)s] :%(message)s"
+    handler = StreamHandler()
+    handler.setFormatter(Formatter(fmt))
+    handler.setLevel(DEBUG)
+    file_handler = FileHandler(log_path, mode='a', encoding='utf-8')
+    file_handler.setFormatter(Formatter(fmt))
+    file_handler.setLevel(DEBUG)
+
+    logger = getLogger(doll_id)
+    logger.setLevel(DEBUG)
+    logger.addHandler(handler)
+    logger.addHandler(file_handler)
+    logger.propagate = False
+    return logger

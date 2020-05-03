@@ -4,8 +4,8 @@ from automata.doll.doll import Doll
 
 
 class NineJapan(Doll):
-    def __init__(self, doll_id):
-        super().__init__(doll_id)
+    def __init__(self, doll_id, conn, today):
+        super().__init__(doll_id, conn, today)
 
     def operate(self):
         # 初期パラメータのセット

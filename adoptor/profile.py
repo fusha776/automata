@@ -13,10 +13,13 @@ class Profile():
     '''[プロフィール] の動作を制御するクラス
     '''
 
-    def __init__(self, mediator):
+    def __init__(self, mediator, action_counters_repository, following_status_repository):
         self.mediator = mediator
         self.driver = self.mediator.driver
         self.login_id = self.mediator.doll_conf.login_id
+
+        self.action_counters_repository = action_counters_repository
+        self.following_status_repository = following_status_repository
 
     @loading
     @wait()
@@ -102,9 +105,9 @@ class Profile():
         if has_followed:
             # ステータスを更新
             if insert_into_table:
-                self.mediator.dao.add_following(insta_id, has_followed=1, is_follower=0)
+                self.mediator.following_status_repository.add_following(insta_id, has_followed=1, is_follower=0)
             # アクション回数を更新
-            self.mediator.dao.increase_action_count({'follow': 1})
+            self.mediator.action_counters_repository.increase_action_count({'follow': 1})
         return has_followed
 
     @loading
@@ -135,9 +138,9 @@ class Profile():
         if has_followed:
             # ステータスを更新
             if insert_into_table:
-                self.mediator.dao.add_following(insta_id, has_followed=1, is_follower=0)
+                self.mediator.following_status_repository.add_following(insta_id, has_followed=1, is_follower=0)
             # アクション回数を更新
-            self.mediator.dao.increase_action_count({'follow': 1})
+            self.mediator.action_counters_repository.increase_action_count({'follow': 1})
         return has_followed
 
     @loading
@@ -184,8 +187,8 @@ class Profile():
         self.mediator.modal.check_action_block()
 
         # アクション更新
-        self.mediator.dao.delete_following(insta_id)
-        self.mediator.dao.increase_action_count({'unfollow': 1})
+        self.mediator.following_status_repository.delete_following(insta_id)
+        self.mediator.action_counters_repository.increase_action_count({'unfollow': 1})
         return True
 
     @loading

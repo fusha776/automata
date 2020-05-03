@@ -1,16 +1,18 @@
-import os
-import pathlib
 from datetime import datetime
-from logging import getLogger, StreamHandler, FileHandler, Formatter, DEBUG
 from selenium import webdriver
-from automata.dao import Dao
 from automata.common.settings import CHROMEDRIVER_PATH, CHROME_CACHE_SIZE, WAIT_SECONDS
 from automata.common.utils import backup_ajax
+from automata.common.utils import generate_logger
 from automata.adoptor.web import Web
 from automata.adoptor.profile import Profile
 from automata.adoptor.post import Post
 from automata.adoptor.modal import Modal
 from automata.adoptor.search import Search
+
+from automata.repository.action_counters import ActionCountersRepository
+from automata.repository.doll_settings import DollSettingsRepository
+from automata.repository.doll_status import DollStatusRepository
+from automata.repository.following_status import FollowiingStatusRepository
 
 
 class Abilities():
@@ -18,58 +20,54 @@ class Abilities():
     dollの起動処理もここで管理される
     '''
 
-    def __init__(self, doll_id):
-        # doll id をセット
+    def __init__(self, doll_id, conn, today):
         self.doll_id = doll_id
-
-        # 実行日を取得
-        self.today = datetime.now().strftime('%Y%m%d')
+        self.today = today
+        self.conn = conn
 
     def setup_doll(self):
         '''Doll向けの機能をセットアップする
         '''
+        self.action_counters_repository = ActionCountersRepository(self.conn, self.doll_id, self.today)
+        self.doll_settings_repository = DollSettingsRepository(self.conn, self.doll_id, self.today)
+        self.doll_status_repository = DollStatusRepository(self.conn, self.doll_id, self.today)
+        self.following_status_repository = FollowiingStatusRepository(self.conn, self.doll_id, self.today)
+
         # loggerを取得
-        self.logger = self.create_logger()
+        self.logger = generate_logger(self.doll_id, self.today)
         self.logger.debug('LOADING - BOOTING SYSTEM...')
 
-        # DBセッションを取得
-        self.dao = Dao(self.doll_id, self.today)
-
         # doll のコンフィグを取得
-        self.doll_conf = DollConfigs(self.dao)
+        self.doll_conf = DollConfigs(self.doll_settings_repository)
         self.login_id = self.doll_conf.login_id  # 良く使うのでショートカットを用意
 
         # webdriver を取得
         self.driver = self.create_driver()
 
         # 各画面制御の移譲クラスを取得
-        self.web = Web(self)
-        self.profile = Profile(self)
-        self.post = Post(self)
-        self.modal = Modal(self)
-        self.search = Search(self)
+        self.activate_screen_actions()
 
         # dollを起動中にする
-        self.dao.lock_doll_status()
+        self.doll_status_repository.lock_doll()
         self.logger.debug(f'AUTOMATA is activated. - doll id: {self.doll_id}, login id: {self.login_id}')
 
-    def setup_master(self):
-        '''Doll制御クラス向けに、DB接続とLoggerだけ解放する
+    def activate_screen_actions(self):
+        '''画面制御系のクラスを生成する
         '''
-        # loggerを取得
-        self.logger = self.create_logger()
-        # DBセッションを取得
-        self.dao = Dao(self.doll_id, self.today)
+
+        self.modal = Modal(self, self.action_counters_repository, self.doll_status_repository)
+        self.post = Post(self, self.action_counters_repository)
+        self.web = Web(self)
+        self.profile = Profile(self, self.action_counters_repository, self.following_status_repository)
+        self.search = Search(self, self.action_counters_repository)
 
     def close(self):
         '''Dollの終了処理
         '''
         # driverを真っ先に落とす. profileがロックされてると次の起動も失敗する.
-        # self.driver.close()
         self.driver.quit()
 
-        self.dao.unlock_doll_status()
-        self.dao.conn.close()
+        self.doll_status_repository.unlock_doll()
         self.logger.debug(f'AUTOMATA is terminated. doll_id: {self.doll_id}, login id: {self.login_id}')
 
     def create_driver(self):
@@ -84,48 +82,14 @@ class Abilities():
         backup_ajax(driver)
         return driver
 
-    def create_logger(self):
-        '''ロガーを生成
-        '''
-        def create_dir_and_log():
-            '''必要なディレクトリ, 当日のログファイルが無ければ生成
-
-            Returns:
-                str: 当日のログファイルのpath
-            '''
-            log_dir = f'./log/{self.doll_id}'
-            ss_dir = f'./log/{self.doll_id}/screenshots'
-            pathlib.Path(log_dir).mkdir(parents=True, exist_ok=True)
-            pathlib.Path(ss_dir).mkdir(parents=True, exist_ok=True)
-            log_path = f'{log_dir}/replay_{self.today}.log'
-            if not os.path.exists(log_path):
-                pathlib.Path(log_path).touch()
-            return log_path
-
-        log_path = create_dir_and_log()
-        fmt = "%(asctime)s %(levelname)s [%(name)s] :%(message)s"
-        handler = StreamHandler()
-        handler.setFormatter(Formatter(fmt))
-        handler.setLevel(DEBUG)
-        file_handler = FileHandler(log_path, mode='a', encoding='utf-8')
-        file_handler.setFormatter(Formatter(fmt))
-        file_handler.setLevel(DEBUG)
-
-        logger = getLogger(self.doll_id)
-        logger.setLevel(DEBUG)
-        logger.addHandler(handler)
-        logger.addHandler(file_handler)
-        logger.propagate = False
-        return logger
-
 
 class DollConfigs():
     '''DBへ保存されているdollのコンフィグを管理
     '''
 
-    def __init__(self, dao):
+    def __init__(self, doll_settings_repository):
         # DBからコンフィグを取得
-        q_res = dao.fetch_doll_settings()
+        q_res = doll_settings_repository.fetch_doll_settings()
         self.login_id = q_res['login_id']
         self.password = q_res['password']
         self.doll_group = q_res['doll_group']
