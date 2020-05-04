@@ -18,6 +18,12 @@ LAKE_ROOT_PATH = 'd:/python/project/insta/lake'
 # パラメータjsonが格納されたディレクトリ
 DOLL_PARAMS_DIR = 'd:/python/project/insta/doll_params'
 
+# logの格納ディレクトリ
+LOGGING_DIR = 'd:/python/project/insta/log'
+
+# 集計レポートの格納ディレクトリ
+REPORTING_DIR = 'd:/python/project/insta/reports'
+
 
 ###############
 # 画面動作制御 #

@@ -38,8 +38,8 @@ class Collector():
         actions = self.doll_query.load_daily_action_results(doll_group, self.today)
         msg = doll_class.format(self.today, actions)
 
-        pathlib.Path(f'./results/{self.today}').mkdir(parents=True, exist_ok=True)
-        result_path = f'./results/{self.today}/{doll_group}_{suffix}.txt'
+        pathlib.Path(f'{REPORTING_DIR}/{self.today}').mkdir(parents=True, exist_ok=True)
+        result_path = f'{REPORTING_DIR}/{self.today}/{doll_group}_{suffix}.txt'
         if not os.path.exists(result_path):
             with open(result_path, 'w', encoding='utf8') as f:
                 f.write(msg)
