@@ -7,6 +7,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from automata.common.settings import WAIT_LOADING_SECONDS
+from automata.common.settings import REPORTING_DIR
 from automata.common.utils import loading, wait
 from automata.common.utils import create_logger, create_driver
 from automata.repository.reporter_settings import ReporterSettingsRepository
@@ -103,7 +104,7 @@ class LineReporter():
         if sent_logs:
             return
 
-        result_path = f'./results/{self.today}/{doll_group}_{self.today}.txt'
+        result_path = f'{REPORTING_DIR}/{self.today}/{doll_group}_{self.today}.txt'
         if not os.path.exists(result_path):
             self.logger.error(f'報告用ファイルが生成されていません {doll_group}')
             raise Exception
@@ -125,13 +126,13 @@ class LineReporter():
     def _pre_send(self, doll_group):
         '''監視用に結果ファイルを事前送信する
         '''
-        result_path = f'./results/{self.today}/{doll_group}_{self.today}.txt'
+        result_path = f'{REPORTING_DIR}/{self.today}/{doll_group}_{self.today}.txt'
         if not os.path.exists(result_path):
             self.logger.error(f'報告用ファイルが生成されていません {doll_group}')
             raise Exception
 
         with open(result_path, 'r+', encoding='utf8') as f:
-            report_msg = f'途中経過: {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}\n' + f.read()
+            report_msg = f'プレチェック: {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}\n' + f.read()
             self.open_destination_room(self.conf['monitor_room'])
             msg_input = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
                 EC.element_to_be_clickable((By.ID, '_chat_room_input')))
@@ -143,7 +144,7 @@ class LineReporter():
     def _monitor(self, doll_group):
         '''監視用に途中経過を送信する
         '''
-        interim_path = f'./results/{self.today}/{doll_group}_interim.txt'
+        interim_path = f'{REPORTING_DIR}/{self.today}/{doll_group}_interim.txt'
         if not os.path.exists(interim_path):
             return
 

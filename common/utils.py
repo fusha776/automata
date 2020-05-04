@@ -11,6 +11,7 @@ from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import JavascriptException
 from automata.common.settings import ACTION_WAIT_SECONDS, WAIT_LOADING_SECONDS
 from automata.common.settings import CHROMEDRIVER_PATH, CHROME_CACHE_SIZE, WAIT_SECONDS
+from automata.common.settings import LOGGING_DIR
 
 
 def wait(waiting_seconds=ACTION_WAIT_SECONDS):
@@ -138,8 +139,8 @@ def create_logger(doll_id, today):
         Returns:
             str: 当日のログファイルのpath
         '''
-        log_dir = f'./log/{doll_id}'
-        ss_dir = f'./log/{doll_id}/screenshots'
+        log_dir = f'{LOGGING_DIR}/{doll_id}'
+        ss_dir = f'{LOGGING_DIR}/{doll_id}/screenshots'
         pathlib.Path(log_dir).mkdir(parents=True, exist_ok=True)
         pathlib.Path(ss_dir).mkdir(parents=True, exist_ok=True)
         log_path = f'{log_dir}/replay_{today}.log'

@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 from automata.workflow.facade import Facade
-from automata.common.settings import DOLL_PARAMS_DIR
+from automata.common.settings import DOLL_PARAMS_DIR, LOGGING_DIR
 
 from automata.repository.doll_status import DollStatusRepository
 
@@ -72,7 +72,7 @@ class Doll():
             self.facade.abilities.logger.debug(f'発生したページ: {self.facade.abilities.driver.current_url}')
 
             # スクリーンショットを保存
-            ss_dir = f'./log/{self.facade.abilities.doll_id}/screenshots'
+            ss_dir = f'{LOGGING_DIR}/{self.facade.abilities.doll_id}/screenshots'
             self.facade.abilities.driver.save_screenshot(f'{ss_dir}/screenshot_{datetime.now().strftime("%Y%m%d%H%M%S")}.png')
 
             # htmlの保存（※保留中、動作が安定してきたら追加するかも）
