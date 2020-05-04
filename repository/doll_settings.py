@@ -13,7 +13,7 @@ class DollSettingsRepository():
         self.doll_id = doll_id
         self.today = today
 
-    def fetch_doll_settings(self):
+    def load_doll_settings(self):
         with self.conn.cursor() as cursor:
             cursor.execute('''
                 SELECT

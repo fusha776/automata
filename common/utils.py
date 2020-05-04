@@ -4,11 +4,13 @@ import pathlib
 from logging import getLogger, StreamHandler, FileHandler, Formatter, DEBUG
 from random import random
 from time import sleep
+from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import JavascriptException
 from automata.common.settings import ACTION_WAIT_SECONDS, WAIT_LOADING_SECONDS
+from automata.common.settings import CHROMEDRIVER_PATH, CHROME_CACHE_SIZE, WAIT_SECONDS
 
 
 def wait(waiting_seconds=ACTION_WAIT_SECONDS):
@@ -60,6 +62,8 @@ def would_be_japanese(msg, omit_hashtags=True):
     return len(hit_words) >= 1
 
 
+@loading
+@wait()
 def backup_ajax(driver):
     '''ajax通信用のブジェクトをバックアップする
     通信を再開させるときのために保管
@@ -125,7 +129,7 @@ def reopen_ajax(driver):
     driver.execute_script("XMLHttpRequest.prototype.send=window.oSend")
 
 
-def generate_logger(doll_id, today):
+def create_logger(doll_id, today):
     '''所定フォーマットのロガーと出力先を生成
     '''
     def create_dir_and_log():
@@ -158,3 +162,23 @@ def generate_logger(doll_id, today):
     logger.addHandler(file_handler)
     logger.propagate = False
     return logger
+
+
+def create_driver(browser_data_dir, device_name):
+    '''Chromeを起動し、Driverインスタンスを返却する
+
+    Args:
+        browser_data_dir (str): 使用する Chrome Profile のパス
+        device_name (str): 使用するデバイス名。 e.g. 'Pixel 2'
+    '''
+    options = webdriver.ChromeOptions()
+    options.add_argument(f'--user-data-dir={browser_data_dir}')  # 同一のデータディレクトリは複数ブラウザで参照できない点に注意
+    options.add_argument(f'--disk-cache-size={CHROME_CACHE_SIZE}')
+    if device_name:
+        options.add_experimental_option('mobileEmulation', {'deviceName': device_name})
+    driver = webdriver.Chrome(executable_path=CHROMEDRIVER_PATH, options=options)
+    driver.implicitly_wait(WAIT_SECONDS)  # find_element等の最大待ち時間
+
+    # 途中でajaxをバイパス制御するため、xhrのバックアップ実行（ブラウザ側で保管）
+    backup_ajax(driver)
+    return driver

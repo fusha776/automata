@@ -1,7 +1,6 @@
 from datetime import datetime
-from automata.doll.collector import Collector
 from automata.common.settings import HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO, BOOTING_INTERVAL_SECONDS, DOLLS_PARALLEL_LIMIT
-from automata.common.utils import generate_logger
+from automata.common.utils import create_logger
 from automata.common.connection_factory import ConnectionFactory
 
 from automata.repository.doll_query import DollQuery
@@ -23,7 +22,7 @@ class Conductor():
         self.test_doll_id = test_doll_id
         self.test_doll_chips = test_doll_chips
         self.today = datetime.now().strftime('%Y%m%d')
-        self.logger = generate_logger('conductor', self.today)
+        self.logger = create_logger('conductor', self.today)
 
         # DBセッションを生成. 実行ファイルの修正を頻度避けるため、Doll以外のRepositoryは埋め込んでしまう
         self.conn = ConnectionFactory.get_conn()
@@ -94,21 +93,8 @@ class Conductor():
         '''
         return globals()[class_name] if class_name else None
 
-    def count_results(self):
-        '''所定の時間になったら、当日のリザルトを集計する
-        '''
-        now_dt = datetime.now()
-        # 活動時間ならskip
-        if not (HOUR_SLEEPING_FROM <= now_dt.hour <= HOUR_SLEEPING_TO):
-            return
-
-        # アクションを集計
-        collector = Collector(self.conn, self.today, self.today)
-        collector.save()
-
     def execute(self):
         '''dollの生成と結果カウントを実行する
         '''
         self.activate_doll()
-        self.count_results()
         self.conn.close()

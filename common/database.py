@@ -117,6 +117,32 @@ class Model():
             PRIMARY KEY (doll_id, instagram_id)
         )'''
 
+        reporter_settings = '''CREATE TABLE IF NOT EXISTS reporter_settings (
+            doll_id VARCHAR(32) PRIMARY KEY,
+            login_id VARCHAR(32),
+            password VARCHAR(32),
+            browser_data_dir VARCHAR(128),
+            device_name VARCHAR(32),
+            monitor_room VARCHAR(16)
+        )'''
+
+        report_mappings = '''CREATE TABLE IF NOT EXISTS report_mappings (
+            doll_group VARCHAR(32) PRIMARY KEY,
+            channel VARCHAR(32),
+            destination VARCHAR(32),
+            created_at DATETIME,
+            updated_at DATETIME
+        )'''
+
+        reporting_histories = '''CREATE TABLE IF NOT EXISTS reporting_histories (
+            doll_group VARCHAR(32),
+            reported_on VARCHAR(8),
+            channel VARCHAR(32),
+            destination VARCHAR(32),
+            created_at DATETIME,
+            PRIMARY KEY (doll_group, reported_on)
+       )'''
+
         _ = dm_histories, dm_messages_mst, hashtag_groups_mst, ng_users  # 現在未使用テーブル、Lintのエラー避け
         with self.conn.cursor() as cursor:
             cursor.execute(following_status)
@@ -124,6 +150,9 @@ class Model():
             cursor.execute(action_counters)
             cursor.execute(doll_status)
             cursor.execute(recent_touched_histories)
+            cursor.execute(reporter_settings)
+            cursor.execute(report_mappings)
+            cursor.execute(reporting_histories)
             # cursor.execute(dm_histories)
             # cursor.execute(dm_messages_mst)
             # cursor.execute(hashtag_groups_mst)

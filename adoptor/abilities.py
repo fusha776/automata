@@ -1,8 +1,4 @@
-from datetime import datetime
-from selenium import webdriver
-from automata.common.settings import CHROMEDRIVER_PATH, CHROME_CACHE_SIZE, WAIT_SECONDS
-from automata.common.utils import backup_ajax
-from automata.common.utils import generate_logger
+from automata.common.utils import create_logger, create_driver
 from automata.adoptor.web import Web
 from automata.adoptor.profile import Profile
 from automata.adoptor.post import Post
@@ -34,7 +30,7 @@ class Abilities():
         self.following_status_repository = FollowiingStatusRepository(self.conn, self.doll_id, self.today)
 
         # loggerを取得
-        self.logger = generate_logger(self.doll_id, self.today)
+        self.logger = create_logger(self.doll_id, self.today)
         self.logger.debug('LOADING - BOOTING SYSTEM...')
 
         # doll のコンフィグを取得
@@ -42,7 +38,7 @@ class Abilities():
         self.login_id = self.doll_conf.login_id  # 良く使うのでショートカットを用意
 
         # webdriver を取得
-        self.driver = self.create_driver()
+        self.driver = create_driver(self.doll_conf.browser_data_dir, self.doll_conf.device_name)
 
         # 各画面制御の移譲クラスを取得
         self.activate_screen_actions()
@@ -70,18 +66,6 @@ class Abilities():
         self.doll_status_repository.unlock_doll()
         self.logger.debug(f'AUTOMATA is terminated. doll_id: {self.doll_id}, login id: {self.login_id}')
 
-    def create_driver(self):
-        options = webdriver.ChromeOptions()
-        options.add_argument(f'--user-data-dir={self.doll_conf.browser_data_dir}')  # 同一のデータディレクトリは複数ブラウザで参照できない点に注意
-        options.add_argument(f'--disk-cache-size={CHROME_CACHE_SIZE}')
-        options.add_experimental_option('mobileEmulation', {'deviceName': self.doll_conf.device_name})
-        driver = webdriver.Chrome(executable_path=CHROMEDRIVER_PATH, options=options)
-        driver.implicitly_wait(WAIT_SECONDS)  # find_element等の最大待ち時間
-
-        # 途中でajaxをバイパス制御するため、xhrのバックアップ実行（ブラウザ側で保管）
-        backup_ajax(driver)
-        return driver
-
 
 class DollConfigs():
     '''DBへ保存されているdollのコンフィグを管理
@@ -89,7 +73,7 @@ class DollConfigs():
 
     def __init__(self, doll_settings_repository):
         # DBからコンフィグを取得
-        q_res = doll_settings_repository.fetch_doll_settings()
+        q_res = doll_settings_repository.load_doll_settings()
         self.login_id = q_res['login_id']
         self.password = q_res['password']
         self.doll_group = q_res['doll_group']
