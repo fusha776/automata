@@ -26,6 +26,10 @@ class NineJapan(Doll):
         # 同じfriendが連続しないようにシャッフルする
         random.shuffle(self.params['my_friends'])
 
+        # フォロー数が制限に接近している場合、fav_rate　を 1 へ変更する
+        if self.facade.validation.check_reaching_my_following_limit():
+            self.params['fav_rate'] = 1.0
+
         # 1. ターゲットのフォロー中のフォロー中をフォロー or fav
         if self.params['actions_friend_following_neighbors'] > 0:
             if self.params['my_friends']:
