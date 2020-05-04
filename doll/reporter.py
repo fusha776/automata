@@ -131,7 +131,7 @@ class LineReporter():
             raise Exception
 
         with open(result_path, 'r+', encoding='utf8') as f:
-            report_msg = f'途中経過: {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}\n' + f.read()
+            report_msg = f'プレチェック: {datetime.now().strftime("%Y/%m/%d %H:%M:%S")}\n' + f.read()
             self.open_destination_room(self.conf['monitor_room'])
             msg_input = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
                 EC.element_to_be_clickable((By.ID, '_chat_room_input')))

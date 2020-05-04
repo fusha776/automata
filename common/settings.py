@@ -12,14 +12,11 @@ CHROME_CACHE_SIZE = 52428800
 # DB & Params #
 ###############
 
-# テーブルのルート
-DATABASE_PATH = 'd:/python/project/insta/tables/automata_db.sqlite3'
-
 # データレイクのルート
-LAKE_ROOT_PATH = 'c:/Users/bell/python/project/instagram/appium/lake'
+LAKE_ROOT_PATH = 'd:/python/project/insta/lake'
 
 # パラメータjsonが格納されたディレクトリ
-DOLL_PARAMS_DIR = 'c:/Users/bell/python/project/insta/doll_params'
+DOLL_PARAMS_DIR = 'd:/python/project/insta/doll_params'
 
 
 ###############
