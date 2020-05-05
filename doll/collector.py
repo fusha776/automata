@@ -1,6 +1,7 @@
 import os
 import pathlib
 from automata.common.utils import create_logger
+from automata.common.settings import REPORTING_DIR
 from automata.doll.nine_japan import NineJapan
 
 from automata.repository.doll_query import DollQuery

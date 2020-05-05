@@ -102,6 +102,7 @@ class LineReporter():
         # 送信済みならskip
         sent_logs = self.doll_settings_repository.load_history(doll_group, self.today)
         if sent_logs:
+            self.logger.info(f'{doll_group} は既に送信済みです. channel: {sent_logs["channel"]}, dst: {sent_logs["destination"]}')
             return
 
         result_path = f'{REPORTING_DIR}/{self.today}/{doll_group}_{self.today}.txt'
