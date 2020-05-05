@@ -349,7 +349,8 @@ class Following():
                     self.ab.logger.debug(f'アクション fav: {insta_id_i}, cnt is 1')
                 else:
                     if only_japanese:
-                        if not would_be_japanese(self.ab.post.read_post_msg()):
+                        post_msg = self.ab.post.read_post_msg()
+                        if (type(post_msg) is str) and (not would_be_japanese(post_msg)):
                             self.ab.logger.debug(f'投稿コメントが日本語と推定できないためskip: {insta_id_i}')
                             continue
 
