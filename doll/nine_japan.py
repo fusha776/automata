@@ -1,6 +1,7 @@
 import random
 from datetime import datetime
 from automata.doll.doll import Doll
+from automata.doll.utils import fillna
 
 
 class NineJapan(Doll):
@@ -73,9 +74,6 @@ class NineJapan(Doll):
             target_day (str): アクション集計日
             doll_records (Row[]): doll別の集計レコード
         '''
-        def fillna(val):
-            return val if val is not None else 0
-
         t_date = datetime.strptime(target_day, '%Y%m%d')
         ym_header = f'{t_date.month}/{t_date.day}'
         res_str = f'{ym_header}\n'
