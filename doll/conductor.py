@@ -8,6 +8,7 @@ from automata.repository.doll_status import DollStatusRepository
 
 # 文字列 -> クラス の取得で使用しています
 from automata.doll.nine_japan import NineJapan
+from automata.doll.tj_magazine import TjMagazine
 
 
 class Conductor():

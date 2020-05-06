@@ -3,6 +3,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from automata.common.settings import WAIT_LOADING_SECONDS
 from automata.common.utils import wait, loading
+from automata.common.utils import to_num
 
 
 class Post():
@@ -81,6 +82,7 @@ class Post():
                 a_cnts[tag_text] += 1
         return max(a_cnts, key=a_cnts.get)
 
+    @loading
     def read_post_msg(self):
         '''投稿コメントを取得する
 
@@ -98,6 +100,26 @@ class Post():
         msg_tags = self.driver.find_elements_by_xpath('//div[contains(@data-testid, "post-comment-root")]/span/span')
         if msg_tags:
             return msg_tags[0].text
+        return None
+
+    @loading
+    @wait()
+    def read_fav_cnt(self):
+        '''該当の写真投稿のfav数を取得する
+
+        WARN:
+            動画投稿のfav数はスマホから回収できない
+
+        Returns:
+            int: fav数
+
+        Conditions:
+            [投稿写真]
+        '''
+        fav_tags = self.driver.find_elements_by_xpath('//a[contains(@href, "liked_by")]/span')
+        if fav_tags:
+            fav_cnt = to_num(fav_tags[0].text)
+            return fav_cnt
         return None
 
     @wait(1)
