@@ -105,7 +105,6 @@ class Doll():
         self.doll_status_repository.reset_blocked_mark()
 
     @classmethod
-    @classmethod
     def format(cls, target_day, doll_records):
         '''レコードを受け取って出力テキストへ整形する
 

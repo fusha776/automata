@@ -143,6 +143,44 @@ class Model():
             PRIMARY KEY (doll_group, reported_on)
        )'''
 
+        account_research = '''CREATE TABLE IF NOT EXISTS account_research (
+            doll_group VARCHAR(32),
+            research_id VARCHAR(32),
+            doll_id VARCHAR(32),
+            instagram_id VARCHAR(32),
+            label VARCHAR(128),
+            follower MEDIUMINT,
+            following SMALLINT,
+            bio VARCHAR(255),
+            website TEXT,
+            recent_fav_1 MEDIUMINT,
+            recent_fav_2 MEDIUMINT,
+            recent_fav_3 MEDIUMINT,
+            recent_fav_4 MEDIUMINT,
+            recent_fav_5 MEDIUMINT,
+            created_at DATETIME,
+            PRIMARY KEY (doll_group, research_id, instagram_id)
+            ) DEFAULT CHARSET=utf8mb4
+       '''
+
+        research_work = '''CREATE TABLE IF NOT EXISTS research_work (
+            research_id VARCHAR(32),
+            instagram_id VARCHAR(32),
+            label VARCHAR(128),
+            follower MEDIUMINT,
+            following SMALLINT,
+            bio VARCHAR(255),
+            website TEXT,
+            recent_fav_1 MEDIUMINT,
+            recent_fav_2 MEDIUMINT,
+            recent_fav_3 MEDIUMINT,
+            recent_fav_4 MEDIUMINT,
+            recent_fav_5 MEDIUMINT,
+            created_at DATETIME,
+            PRIMARY KEY (research_id, instagram_id)
+            ) DEFAULT CHARSET=utf8mb4
+       '''
+
         _ = dm_histories, dm_messages_mst, hashtag_groups_mst, ng_users  # 現在未使用テーブル、Lintのエラー避け
         with self.conn.cursor() as cursor:
             cursor.execute(following_status)
@@ -153,6 +191,9 @@ class Model():
             cursor.execute(reporter_settings)
             cursor.execute(report_mappings)
             cursor.execute(reporting_histories)
+            cursor.execute(account_research)
+            cursor.execute(research_work)
+
             # cursor.execute(dm_histories)
             # cursor.execute(dm_messages_mst)
             # cursor.execute(hashtag_groups_mst)

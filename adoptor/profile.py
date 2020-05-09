@@ -426,7 +426,7 @@ class Profile():
 
     @loading
     def pick_following_num(self):
-        '''フォロワー数を取得する
+        '''フォロー中数を取得する
 
         Returns:
             int or None: フォロー中数, 取得不可の場合はNone
@@ -455,6 +455,20 @@ class Profile():
         return bio_btn[0].text if bio_btn else None
 
     @loading
+    def pick_account_label(self):
+        '''アカウントの論理名を取得する
+        タグの指定が深いけど、これ以外の取得ルートは難しそう
+
+        Returns:
+            int or None: フォロー中数, 取得不可の場合はNone
+
+        Conditions:
+            [プロフィール]
+        '''
+        label_btn = self.driver.find_elements_by_xpath('//*[@id="react-root"]/section/main/div/div[1]/h1')
+        return label_btn[0].text if label_btn else None
+
+    @loading
     def is_deleted_page(self):
         '''削除済みページかチェックする
 
@@ -481,7 +495,7 @@ class Profile():
         photos = photo_frame.find_elements_by_xpath('.//a[contains(@href, "/p/")]')  # /p/ を付けないとオススメ垢のリンクがヒットする
 
         links = []
-        for photo in photos[: max_size]:
+        for photo in photos[:max_size]:
             href = photo.get_attribute('href')
             links.append(href)
         return links

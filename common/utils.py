@@ -183,3 +183,22 @@ def create_driver(browser_data_dir, device_name):
     # 途中でajaxをバイパス制御するため、xhrのバックアップ実行（ブラウザ側で保管）
     backup_ajax(driver)
     return driver
+
+
+def fillna(val):
+    return val if val is not None else 0
+
+
+def to_num(s):
+    '''投稿, フォロワー, フォロー中, favなどを数値へ変換する
+    '''
+    if not s:
+        return None
+    s = s.replace(',', '')
+
+    if ('NaN' in s):
+        s = 0
+    elif '万' in s:
+        s = s.replace('万', '')
+        s = float(s) * 10000
+    return int(s)
