@@ -30,7 +30,8 @@ class LineReporter():
     def __init__(self, conn, today):
         self.conn = conn
         self.today = today
-        self.logger = create_logger('reporter', self.today)
+        self.doll_id = 'reporter'
+        self.logger = create_logger(self.doll_id, self.today)
         self.doll_settings_repository = ReporterSettingsRepository(self.conn, 'reporter', self.today)
         self.conf = self.doll_settings_repository.load_reporter_settings()
         self.activate_driver()
