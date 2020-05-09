@@ -78,7 +78,7 @@ NG_USER_SIZE = 1000  # 廃止予定
 
 # automataの起動可能時間帯（ブロック回避）
 # from <= hour <= to 形式
-HOUR_ACTIVE_FROM, HOUR_ACTIVE_TO = 1, 16
+HOUR_ACTIVE_FROM, HOUR_ACTIVE_TO = 1, 15
 
 # 起動間隔を空ける時間（秒）
 BOOTING_INTERVAL_SECONDS = 60 * 60 * 2

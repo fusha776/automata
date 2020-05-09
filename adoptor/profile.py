@@ -107,7 +107,7 @@ class Profile():
             if insert_into_table:
                 self.mediator.following_status_repository.add_following(insta_id, has_followed=1, is_follower=0)
             # アクション回数を更新
-            self.mediator.action_counters_repository.increase_action_count({'follow': 1})
+            self.action_counters_repository.increase_action_count({'follow': 1})
         return has_followed
 
     @loading
@@ -140,7 +140,7 @@ class Profile():
             if insert_into_table:
                 self.mediator.following_status_repository.add_following(insta_id, has_followed=1, is_follower=0)
             # アクション回数を更新
-            self.mediator.action_counters_repository.increase_action_count({'follow': 1})
+            self.action_counters_repository.increase_action_count({'follow': 1})
         return has_followed
 
     @loading
@@ -188,7 +188,7 @@ class Profile():
 
         # アクション更新
         self.mediator.following_status_repository.delete_following(insta_id)
-        self.mediator.action_counters_repository.increase_action_count({'unfollow': 1})
+        self.action_counters_repository.increase_action_count({'unfollow': 1})
         return True
 
     @loading

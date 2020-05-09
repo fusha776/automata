@@ -3,6 +3,7 @@ from automata.workflow.following import Following
 from automata.workflow.unfollowing import Unfollowing
 from automata.workflow.validation import Validation
 from automata.workflow.research import Research
+from automata.workflow.message import Message
 
 from automata.repository.following_status import FollowiingStatusRepository
 from automata.repository.recent_touched_histories import RecentTouchedHistoriesRepository
@@ -28,6 +29,7 @@ class Facade():
         self.unfollowing = Unfollowing(self.abilities, following_status, recent_touched_histories)
         self.validation = Validation(self.abilities)
         self.research = Research(self.abilities, AccountResearchRepository(conn, doll_id, today))
+        self.message = Message(self.abilities)
 
     def switch_to_instagram_home(self):
         self.abilities.web.switch_to_instagram_home()
