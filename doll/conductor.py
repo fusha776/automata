@@ -1,5 +1,5 @@
 from datetime import datetime
-from automata.common.settings import HOUR_SLEEPING_FROM, HOUR_SLEEPING_TO, BOOTING_INTERVAL_SECONDS, DOLLS_PARALLEL_LIMIT
+from automata.common.settings import HOUR_ACTIVE_FROM, HOUR_ACTIVE_TO, BOOTING_INTERVAL_SECONDS, DOLLS_PARALLEL_LIMIT
 from automata.common.utils import create_logger
 from automata.common.connection_factory import ConnectionFactory
 
@@ -83,7 +83,7 @@ class Conductor():
         # 起動条件を満たしていなければ終了
         if not doll:
             return None, None
-        if HOUR_SLEEPING_FROM <= now_dt.hour <= HOUR_SLEEPING_TO:
+        if not (HOUR_ACTIVE_FROM <= now_dt.hour <= HOUR_ACTIVE_TO):
             return None, None
         if (now_dt - doll['last_booted_at']).total_seconds() < BOOTING_INTERVAL_SECONDS:
             return None, None
