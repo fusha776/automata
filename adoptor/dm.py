@@ -4,7 +4,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from automata.common.settings import WAIT_LOADING_SECONDS
 from automata.common.utils import wait, loading
-from automata.common.utils import to_num
 
 
 class DirectMessage():
@@ -82,6 +81,7 @@ class DirectMessage():
     @wait()
     def _read_reply(self):
         '''相手からのダイレクトメッセージを取得する
+        だいぶ層が深くてマジックナンバーになってるけど、画像投稿と文章投稿が混在するのでこれ以外難しい
 
         Returns:
             str[]: 画面上に取得できた返信メッセージ
@@ -90,23 +90,20 @@ class DirectMessage():
             [DMトップ] - [ユーザDM]
         '''
 
-        icons = self.driver.find_elements_by_xpath('//a/img/../../../..')
-        if not icons:
+        all_msgs = self.driver.find_elements_by_xpath('//span')
+        if not all_msgs:
             return []
 
-        # 相手のメッセージに付けられた、左寄せに作用しているclassを取得する
-        left_class_div = icons[-1].find_element_by_xpath('.//span/../../../..')
-        left_class = left_class_div.get_attribute('class')
-
-        # 左寄せspan = 相手のリプ を全回収する
-        reply_box = self.driver.find_elements_by_xpath(f'//*[contains(@class, "{left_class}")]')
-
+        # 右寄せに作用しているclassの無いmsgだけに絞る（divに付随するclassの数で判定）
         new_msgs = []
-        for reply_box in reply_box:
-            # 画像の場合はspanに文字が埋め込まれない
-            msg = reply_box.find_elements_by_xpath('.//span')
-            if msg:
-                new_msgs.append(msg[0].text)
+        for msg in all_msgs:
+            position_class = msg.find_element_by_xpath('./../../../../../../..')
+            class_cnt = position_class.get_attribute('class')
+            class_cnt = class_cnt.split(' ')
+            class_cnt = [c for c in class_cnt if c]  # スペースが複数続いているためブランクを弾いて、中身のあるクラス数に絞る
+            if len(class_cnt) == 1:  # 右寄せが無い場合の該当divのクラス数: 1
+                print('取得msg:', msg.text)
+                new_msgs.append(msg.text)
         return new_msgs
 
     @loading
@@ -149,86 +146,28 @@ class DirectMessage():
 
     @loading
     @wait()
-    def estimate_insta_id(self):
-        '''投稿画面から投稿者のインスタIDを推定する
-        htmlの変更に強くするためにもネストの深いタグを辿ることは回避したいので、浅い検索条件から推定する
+    def read_estimated_insta_ids(self, scroll_cnt=0):
+        '''DM画面に表示されているインスタIDを上から順番に取得する
 
-        条件:
-            リンクにテキストが含まれるaタグの中で出現回数最大のリンク
+        * 新着の会話があった順に画面に並ぶはず
+        * テキストから直接抜き出せるタグは層が深いので、altを整形して抽出する
 
-        Returns:
-            str: インスタID
-
-        Conditions:
-            [投稿写真 or 投稿動画]
-        '''
-        a_cnts = {}
-        anchors = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
-            EC.element_to_be_clickable((By.XPATH, '//a')))
-        # clickable は単数しか取得できないので、要素の確認後に取りなおす
-        anchors = self.driver.find_elements_by_xpath('//a')
-        for a in anchors:
-            link = a.get_attribute('href')
-            tag_text = a.text
-
-            # テキストがブランクならskip
-            if not tag_text:
-                continue
-
-            if tag_text not in a_cnts:
-                a_cnts[tag_text] = 0
-            if tag_text in link:
-                a_cnts[tag_text] += 1
-        return max(a_cnts, key=a_cnts.get)
-
-    @loading
-    def read_post_msg(self):
-        '''投稿コメントを取得する
-
-        WARN:
-            投稿コメント無しの場合はタグが生成されない
-            投稿コメント無し & レス有り の場合、レスを取得してしまうけどレアケースとして保留にしておきます
+        Args:
+            scroll_cnt (int): 画面をスクロールする回数
 
         Returns:
-            str: 投稿コメント
+            str[]: 新規登録順のインスタID
 
         Conditions:
-            [投稿写真 or 投稿動画]
+            [DMトップ]
         '''
-        self.push_read_more_btn()
-        msg_tags = self.driver.find_elements_by_xpath('//div[contains(@data-testid, "post-comment-root")]/span/span')
-        if msg_tags:
-            return msg_tags[0].text
-        return None
-
-    @loading
-    @wait()
-    def read_fav_cnt(self):
-        '''該当の写真投稿のfav数を取得する
-
-        WARN:
-            動画投稿のfav数はスマホから回収できない
-
-        Returns:
-            int: fav数
-
-        Conditions:
-            [投稿写真]
-        '''
-        fav_tags = self.driver.find_elements_by_xpath('//a[contains(@href, "liked_by")]/span')
-        if fav_tags:
-            fav_cnt = to_num(fav_tags[0].text)
-            return fav_cnt
-        return None
-
-    @wait(1)
-    def push_read_more_btn(self):
-        '''続きを読むボタンを押す
-
-        Conditions:
-            [投稿写真 or 投稿動画]
-        '''
-        self.driver.execute_script('window.scrollBy(0, 300)')
-        more_btn = self.driver.find_elements_by_xpath('//button[contains(text(), "続きを読む")]')
-        if more_btn:
-            more_btn[0].click()
+        insta_ids = []
+        for _ in range(scroll_cnt + 1):
+            icons = self.driver.find_elements_by_xpath('//img')
+            for icon in icons:
+                name = icon.get_attribute('alt')
+                name = name.split('の')[0].strip()  # alt=xxxxのプロフィール写真 になってるはず
+                if name not in insta_ids:
+                    insta_ids.append(name)
+            self.driver.execute_script('window.scrollBy(0, 400)')
+        return insta_ids

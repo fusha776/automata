@@ -11,7 +11,7 @@ class Catalog(Doll):
     def operate(self):
         # いったんアカ探索はおいておいて、その後の動作を確認する
         # self.facade.message.send_message('gardenbell776', 'はらへり')
-        self.facade.message.load_message('gardenbell776')
+        self.facade.message.load_message()
 
     @classmethod
     def format(cls, target_day, doll_records):
