@@ -34,9 +34,9 @@ REPORTING_DIR = 'd:/python/project/insta/reports'
 # 結構重要そうなパラメータ
 # 多重ブラウザに対応したらもう少し大きくしよう
 #
-# 3秒だとそこそこAPI制限エラーが出る
+# 1.5秒だとそこそこAPI制限エラーが出る
 #
-ACTION_WAIT_SECONDS = 5
+ACTION_WAIT_SECONDS = 2.5
 
 # 全操作に紐づける画面制御の待機時間
 WAIT_SECONDS = 2

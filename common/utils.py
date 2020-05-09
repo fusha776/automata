@@ -22,6 +22,7 @@ def wait(waiting_seconds=ACTION_WAIT_SECONDS):
             # ランダムに停止させる
             sleep(waiting_seconds * (1 + 0.5 * random()))
             return func(*args, **kwargs)
+            sleep(waiting_seconds * (1 + 0.5 * random()))
         return wrapper
     return _wait
 

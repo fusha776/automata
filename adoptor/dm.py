@@ -23,8 +23,10 @@ class DirectMessage():
     @wait()
     def switch_to_dm_home(self):
         '''[DMトップ]へ遷移する
+        モーダルが表示される場合があるので消す
         '''
         self.driver.get(f'https://www.instagram.com/direct/inbox/')
+        self.mediator.modal.turn_off_app_recommend_in_dm()
 
     @loading
     @wait()
@@ -41,7 +43,7 @@ class DirectMessage():
             [DMトップ]
         '''
         # 対象アカとのメッセージ画面へ遷移
-        user_menu_btn = self.driver.find_elements_by_xpath(f'//*[contains(text(), {insta_id})]')
+        user_menu_btn = self.driver.find_elements_by_xpath(f'//*[contains(text(), "{insta_id}")]')
         if not user_menu_btn:
             self.mediator.logger.error(f'DM画面から対象アカを見つけられませんでした: {insta_id}')
             return False
@@ -57,7 +59,7 @@ class DirectMessage():
             bool: dm送信に成功 -> True
 
         Conditions:
-            [DMトップ] - [ユーザDM]
+            [DMトップ]
         '''
         # 入力Boxを取得
         self.switch_to_dm_window(insta_id)
@@ -78,7 +80,7 @@ class DirectMessage():
 
     @loading
     @wait()
-    def _read_replay(self):
+    def _read_reply(self):
         '''相手からのダイレクトメッセージを取得する
 
         Returns:
@@ -88,16 +90,24 @@ class DirectMessage():
             [DMトップ] - [ユーザDM]
         '''
 
-        # アイコン有無から相手のメッセージを特定する
-        replay_boxs = self.driver.find_elements_by_xpath('//a/img/../../../..')
+        icons = self.driver.find_elements_by_xpath('//a/img/../../../..')
+        if not icons:
+            return []
 
-        reply_msgs = []
-        for reply_box in replay_boxs:
-            msg = reply_box.find_elements_by_xpath('.//span')
+        # 相手のメッセージに付けられた、左寄せに作用しているclassを取得する
+        left_class_div = icons[-1].find_element_by_xpath('.//span/../../../..')
+        left_class = left_class_div.get_attribute('class')
+
+        # 左寄せspan = 相手のリプ を全回収する
+        reply_box = self.driver.find_elements_by_xpath(f'//*[contains(@class, "{left_class}")]')
+
+        new_msgs = []
+        for reply_box in reply_box:
             # 画像の場合はspanに文字が埋め込まれない
+            msg = reply_box.find_elements_by_xpath('.//span')
             if msg:
-                reply_msgs.append(msg.text)
-        return reply_msgs
+                new_msgs.append(msg[0].text)
+        return new_msgs
 
     @loading
     @wait()
@@ -118,12 +128,15 @@ class DirectMessage():
         '''
 
         # 直近50件の返信を取得する ※未確認だけど、これ以上は画面にデフォルト表示されないと思う
-        sent_msgs = self.dm_histories_repository.load_messages(insta_id, self.login_id)
-        sent_msgs = [m['message'] for m in sent_msgs]
+        sent_msgs = self.dm_histories_repository.load_messages(insta_id, self.login_id, 50)
+        if sent_msgs:
+            sent_msgs = [m['message'] for m in sent_msgs]
+        else:
+            sent_msgs = []
 
         # DM返信を取得
         self.switch_to_dm_window(insta_id)
-        reply_msgs = self._read_replay()
+        reply_msgs = self._read_reply()
 
         registered_cnt = 0
         for msg in reply_msgs:
