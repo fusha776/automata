@@ -4,7 +4,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from automata.common.utils import wait, loading
-from automata.common.utils import close_ajax, reopen_ajax
+from automata.common.utils import close_ajax, reopen_ajax, swipe_random
 from automata.common.settings import LOADING_NEIGHBORS_LIMIT
 from automata.common.settings import WAIT_LOADING_SECONDS
 
@@ -33,6 +33,9 @@ class Profile():
         Args:
             insta_id (str): インスタグラムID
         '''
+        # ランダムにスワイプ
+        swipe_random(self.driver)
+
         # 何回もdictを参照させて失敗してるから、チェック機構を入れよう
         if type(insta_id) is not str:
             self.mediator.logger.error(f'文字列ではないURLが参照されました: {insta_id}')
@@ -52,6 +55,9 @@ class Profile():
         Conditions:
             [プロフィール]
         '''
+        # ランダムにスワイプ
+        swipe_random(self.driver)
+
         # 何回もdictを参照させて失敗してるから、チェック機構を入れよう
         if type(insta_id) is not str:
             self.mediator.logger.error(f'文字列ではないURLが参照されました: {insta_id}')
@@ -69,6 +75,9 @@ class Profile():
         Conditions:
             [プロフィール]
         '''
+        # ランダムにスワイプ
+        swipe_random(self.driver)
+
         # 何回もdictを参照させて失敗してるから、チェック機構を入れよう
         if type(insta_id) is not str:
             self.mediator.logger.error(f'文字列ではないURLが参照されました: {insta_id}')
@@ -108,6 +117,9 @@ class Profile():
                 self.mediator.following_status_repository.add_following(insta_id, has_followed=1, is_follower=0)
             # アクション回数を更新
             self.action_counters_repository.increase_action_count({'follow': 1})
+
+        # ランダムにスワイプ
+        swipe_random(self.driver)
         return has_followed
 
     @loading
@@ -141,6 +153,9 @@ class Profile():
                 self.mediator.following_status_repository.add_following(insta_id, has_followed=1, is_follower=0)
             # アクション回数を更新
             self.action_counters_repository.increase_action_count({'follow': 1})
+
+        # ランダムにスワイプ
+        swipe_random(self.driver)
         return has_followed
 
     @loading
@@ -189,6 +204,9 @@ class Profile():
         # アクション更新
         self.mediator.following_status_repository.delete_following(insta_id)
         self.action_counters_repository.increase_action_count({'unfollow': 1})
+
+        # ランダムにスワイプ
+        swipe_random(self.driver)
         return True
 
     @loading

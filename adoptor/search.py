@@ -1,9 +1,9 @@
-from time import sleep
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from automata.common.utils import wait, loading
 from automata.common.settings import WAIT_LOADING_SECONDS, POPULAR_POSTS_NUM_IN_SEARCH
+from automata.common.utils import swipe_random
 
 
 class Search():
@@ -22,6 +22,9 @@ class Search():
     def switch_to_search_home(self):
         '''検索トップへ遷移する
         '''
+        # ランダムにスワイプ
+        swipe_random(self.driver)
+
         self.driver.get(f'https://www.instagram.com/explore/')
 
     @loading
@@ -48,6 +51,9 @@ class Search():
 
         # 念のため # 消し処理を加える
         kw_cleaned = keyword.replace('#', '')
+
+        # ランダムにスワイプ
+        swipe_random(self.driver)
         self.driver.get(f'https://www.instagram.com/explore/tags/{kw_cleaned}/')
 
     @loading
@@ -145,4 +151,7 @@ class Search():
 
         # アクション回数を更新
         self.action_counters_repository.increase_action_count({'fav': 1})
+
+        # ランダムにスワイプ
+        swipe_random(self.driver)
         return True

@@ -1,6 +1,6 @@
 import random
 from automata.common.settings import FOLLOWER_UPPER_LIMIT, HOJIN_KEYWORDS
-from automata.common.utils import would_be_japanese
+from automata.common.utils import would_be_japanese, swipe_random
 
 
 class Following():
@@ -45,7 +45,11 @@ class Following():
 
         popular_ids = []
         for img_link in self.ab.search.load_popular_posts():
+
+            # ブロック対策のため、画面遷移前にはランダムにスワイプ
+            swipe_random(self.ab.driver)
             self.ab.driver.get(img_link)
+
             insta_id_i = self.ab.post.estimate_insta_id()
             popular_ids.append(insta_id_i)
 
@@ -193,7 +197,10 @@ class Following():
                 continue
 
             # 同一アクションの連続はブロックの危険があがるので、ランダムでアクションを変える
-            if random.random() < fav_rate:
+            if random.random() < 0.2:
+                # 一定の確率で何もしない -> 気持ちだけでも周遊しているように見せかける
+                continue
+            elif random.random() < fav_rate:
                 # ファボをトライする
                 new_fav_cnt = try_to_fav()
                 fav_cnt += new_fav_cnt
@@ -335,11 +342,16 @@ class Following():
                     self.ab.logger.debug('fav済が続くため、新規投稿枯渇とみなして次のkeywordへ移動')
                     break
 
+                # ブロック対策のため、画面遷移前にはランダムにスワイプ
+                swipe_random(self.ab.driver)
                 self.ab.driver.get(img_link)
                 insta_id_i = self.ab.post.estimate_insta_id()
 
                 # 同一アクションの連続はブロックの危険があがるので、fav or follow をランダムで変える
                 is_private = False
+                if random.random() < 0.2:
+                    # 一定の確率で何もしない -> 気持ちだけでも周遊しているように見せかける
+                    continue
                 if random.random() <= fav_rate:
                     if self.ab.post.fav():
                         fav_cnt += 1

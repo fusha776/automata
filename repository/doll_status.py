@@ -1,6 +1,3 @@
-from datetime import datetime
-
-
 class DollStatusRepository():
     '''doll_status の repositoryクラス
     interfaceは省略する
@@ -23,11 +20,11 @@ class DollStatusRepository():
         * 最終起動日と当日の起動回数を更新する
         '''
         with self.conn.cursor() as cursor:
+            # 最終実行日時を更新値で評価しないように独立して実行する
             cursor.execute('''
                 UPDATE
                     doll_status
                 SET
-                    last_booted_at = now(),
                     today_booted_times =
                         CASE
                             WHEN DATE_FORMAT(last_booted_at, %s) = %s THEN today_booted_times + 1
@@ -37,6 +34,15 @@ class DollStatusRepository():
                 WHERE
                     doll_id = %s
                 ''', ('%Y%m%d', self.today, self.doll_id))
+
+            cursor.execute('''
+                UPDATE
+                    doll_status
+                SET
+                    last_booted_at = now()
+                WHERE
+                    doll_id = %s
+                ''', (self.doll_id,))
             self.conn.commit()
 
     def unlock_doll(self):
