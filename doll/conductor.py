@@ -6,9 +6,10 @@ from automata.common.connection_factory import ConnectionFactory
 from automata.repository.doll_query import DollQuery
 from automata.repository.doll_status import DollStatusRepository
 
-# 文字列 -> クラス の取得で使用しています
+# 文字列 -> クラス の取得で使用 ディレクトリ切って __init__.py 用意した方が良さそう　
 from automata.doll.nine_japan import NineJapan
 from automata.doll.tj_magazine import TjMagazine
+from automata.doll.catalog import Catalog
 
 
 class Conductor():

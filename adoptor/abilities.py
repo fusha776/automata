@@ -4,11 +4,13 @@ from automata.adoptor.profile import Profile
 from automata.adoptor.post import Post
 from automata.adoptor.modal import Modal
 from automata.adoptor.search import Search
+from automata.adoptor.dm import DirectMessage
 
 from automata.repository.action_counters import ActionCountersRepository
 from automata.repository.doll_settings import DollSettingsRepository
 from automata.repository.doll_status import DollStatusRepository
 from automata.repository.following_status import FollowiingStatusRepository
+from automata.repository.dm_histories import DmHistoriesRepository
 
 
 class Abilities():
@@ -28,6 +30,7 @@ class Abilities():
         self.doll_settings_repository = DollSettingsRepository(self.conn, self.doll_id, self.today)
         self.doll_status_repository = DollStatusRepository(self.conn, self.doll_id, self.today)
         self.following_status_repository = FollowiingStatusRepository(self.conn, self.doll_id, self.today)
+        self.dm_histories_repository = DmHistoriesRepository(self.conn, self.doll_id, self.today)
 
         # loggerを取得
         self.logger = create_logger(self.doll_id, self.today)
@@ -56,6 +59,7 @@ class Abilities():
         self.web = Web(self)
         self.profile = Profile(self, self.action_counters_repository, self.following_status_repository)
         self.search = Search(self, self.action_counters_repository)
+        self.dm = DirectMessage(self, self.action_counters_repository, self.dm_histories_repository)
 
     def close(self):
         '''Dollの終了処理

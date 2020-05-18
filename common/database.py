@@ -20,14 +20,6 @@ class Model():
         # connection.isolation_level = None
 
     def create_tables(self):
-        dm_histories = '''CREATE TABLE IF NOT EXISTS dm_histories (
-            doll_id VARCHAR,
-            instagram_id VARCHAR,
-            dm_message_id VARCHAR,
-            sent_on VARCHAR,
-            PRIMARY KEY (doll_id, instagram_id)
-        )'''
-
         dm_messages_mst = '''CREATE TABLE IF NOT EXISTS dm_messages_mst (
             dm_message_id VARCHAR PRIMARY KEY,
             message VARCHAR,
@@ -180,8 +172,15 @@ class Model():
             PRIMARY KEY (research_id, instagram_id)
             ) DEFAULT CHARSET=utf8mb4
        '''
+        dm_histories = '''CREATE TABLE IF NOT EXISTS dm_histories (
+            id INTEGER AUTO_INCREMENT NOT NULL PRIMARY KEY,
+            sent_from VARCHAR(32),
+            sent_to VARCHAR(32),
+            message TEXT,
+            created_at DATETIME
+        )'''
 
-        _ = dm_histories, dm_messages_mst, hashtag_groups_mst, ng_users  # 現在未使用テーブル、Lintのエラー避け
+        _ = dm_messages_mst, hashtag_groups_mst, ng_users  # 現在未使用テーブル、Lintのエラー避け
         with self.conn.cursor() as cursor:
             cursor.execute(following_status)
             cursor.execute(doll_settings)
@@ -193,8 +192,7 @@ class Model():
             cursor.execute(reporting_histories)
             cursor.execute(account_research)
             cursor.execute(research_work)
-
-            # cursor.execute(dm_histories)
+            cursor.execute(dm_histories)
             # cursor.execute(dm_messages_mst)
             # cursor.execute(hashtag_groups_mst)
             # cursor.execute(ng_users)

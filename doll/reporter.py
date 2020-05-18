@@ -30,7 +30,8 @@ class LineReporter():
     def __init__(self, conn, today):
         self.conn = conn
         self.today = today
-        self.logger = create_logger('reporter', self.today)
+        self.doll_id = 'reporter'
+        self.logger = create_logger(self.doll_id, self.today)
         self.doll_settings_repository = ReporterSettingsRepository(self.conn, 'reporter', self.today)
         self.conf = self.doll_settings_repository.load_reporter_settings()
         self.activate_driver()
@@ -45,12 +46,14 @@ class LineReporter():
         self.driver.quit()
 
     @loading
+    @wait()
     def switch_to_home(self):
         '''詳細はログイン履歴が消えてから確認しよう
         '''
         self.driver.get(CHROME_LINE_EXTENTION_PATH)
 
     @loading
+    @wait()
     def login(self):
         '''Chrome版LINEへログインする
         '''
@@ -77,6 +80,9 @@ class LineReporter():
         room_btn = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(
             EC.element_to_be_clickable((By.XPATH, f'//li[contains(@title, "{dst_room}")]')))
         room_btn.click()
+
+        # ページ遷移をuntilだけで待機しようとすると、遷移前のelementを回収して not attach err を出すのでload待ちが必要
+        sleep(5)
 
         # 対象のルームが開いたことを簡易チェック。遷移できてない場合はエラーが発生
         _ = WebDriverWait(self.driver, WAIT_LOADING_SECONDS).until(

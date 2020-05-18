@@ -34,9 +34,9 @@ REPORTING_DIR = 'd:/python/project/insta/reports'
 # 結構重要そうなパラメータ
 # 多重ブラウザに対応したらもう少し大きくしよう
 #
-# 3秒だとそこそこAPI制限エラーが出る
+# 1.5秒だとそこそこAPI制限エラーが出る
 #
-ACTION_WAIT_SECONDS = 5
+ACTION_WAIT_SECONDS = 2.5
 
 # 全操作に紐づける画面制御の待機時間
 WAIT_SECONDS = 2
@@ -78,7 +78,7 @@ NG_USER_SIZE = 1000  # 廃止予定
 
 # automataの起動可能時間帯（ブロック回避）
 # from <= hour <= to 形式
-HOUR_ACTIVE_FROM, HOUR_ACTIVE_TO = 1, 16
+HOUR_ACTIVE_FROM, HOUR_ACTIVE_TO = 4, 16
 
 # 起動間隔を空ける時間（秒）
 BOOTING_INTERVAL_SECONDS = 60 * 60 * 2

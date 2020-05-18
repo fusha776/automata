@@ -70,7 +70,7 @@ class ReporterSettingsRepository():
                     doll_group = %s and
                     reported_on = %s
             ''', (doll_group, target_day))
-            res = cursor.fetchall()
+            res = cursor.fetchone()
         return res
 
     def register_sent_report(self, doll_group, channel, destination):

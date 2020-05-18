@@ -88,6 +88,17 @@ class Modal():
 
     @loading
     @wait()
+    def turn_off_app_recommend_in_dm(self):
+        '''DM画面で表示されるアプリ推薦モダールを消す
+        下から伸びてくるポップをプレゼンテーションと呼ぶらしい
+        '''
+        presentation = self.driver.find_elements_by_xpath('//*[contains(@role, "presentation")]')
+        if presentation:
+            off_btn = presentation[0].find_element_by_xpath('.//button[contains(text(), "後で")]')
+            off_btn.click()
+
+    @loading
+    @wait()
     def check_action_block(self):
         '''アクションブロックを確認し、該当していたらエラーを発生させる
 
