@@ -36,7 +36,7 @@ REPORTING_DIR = 'd:/python/project/insta/reports'
 #
 # 1.5秒だとそこそこAPI制限エラーが出る
 #
-ACTION_WAIT_SECONDS = 2.5
+ACTION_WAIT_SECONDS = 4
 
 # 全操作に紐づける画面制御の待機時間
 WAIT_SECONDS = 2

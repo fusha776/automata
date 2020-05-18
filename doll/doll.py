@@ -91,14 +91,16 @@ class Doll():
     def _relogin(self):
         '''ブロック状態のリセットのため、ログアウト - ログイン を行う
         '''
-        # ログアウト
-        # たまに失敗するみたいだけど理由不明.
-        # ブラウザキャッシュを消して対処した方が良いかも、でもそれだと多重ログインでブロックされやすくなるかも
-        self.facade.abilities.profile.switch_to_user_profile(self.facade.abilities.login_id)
-        self.facade.abilities.profile.logout()
+        # リログインせずに一日待ってくれだって
 
-        # 再ログイン
-        self.facade.switch_to_instagram_home()
+        # # ログアウト
+        # # たまに失敗するみたいだけど理由不明.
+        # # ブラウザキャッシュを消して対処した方が良いかも、でもそれだと多重ログインでブロックされやすくなるかも
+        # self.facade.abilities.profile.switch_to_user_profile(self.facade.abilities.login_id)
+        # self.facade.abilities.profile.logout()
+
+        # # 再ログイン
+        # self.facade.switch_to_instagram_home()
 
         # ここまで成功したらDB更新
         self.facade.abilities.logger.debug(f'ブロック状態のため再ログインを実施')

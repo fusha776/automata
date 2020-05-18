@@ -1,14 +1,16 @@
+import random
 import re
 import os
 import pathlib
 from logging import getLogger, StreamHandler, FileHandler, Formatter, DEBUG
-from random import random
 from time import sleep
 from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import JavascriptException
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 from automata.common.settings import ACTION_WAIT_SECONDS, WAIT_LOADING_SECONDS
 from automata.common.settings import CHROMEDRIVER_PATH, CHROME_CACHE_SIZE, WAIT_SECONDS
 from automata.common.settings import LOGGING_DIR
@@ -20,9 +22,9 @@ def wait(waiting_seconds=ACTION_WAIT_SECONDS):
         '''
         def wrapper(*args, **kwargs):
             # ランダムに停止させる
-            sleep(waiting_seconds * (1 + 0.5 * random()))
+            sleep(waiting_seconds * (1 + 0.5 * random.random()))
             return func(*args, **kwargs)
-            sleep(waiting_seconds * (1 + 0.5 * random()))
+            sleep(waiting_seconds * (1 + 0.5 * random.random()))
         return wrapper
     return _wait
 
@@ -203,3 +205,34 @@ def to_num(s):
         s = s.replace('万', '')
         s = float(s) * 10000
     return int(s)
+
+
+def swipe_random(driver, max_swipe=4):
+    '''画面をランダムにスワイプする
+    bot対策で画面スワイプを収集しているらしい
+    '''
+    # マウスを画面中央へ移動
+    main_el = driver.find_element_by_tag_name('main')
+    chains = ActionChains(driver)
+    chains.move_to_element(main_el).perform()
+    for i in range(max_swipe):
+        print(f"for in {i}")
+        # スワイプの方向を上下どちらにするか決める
+        direction = 1
+        if random.random() < 0.3:
+            direction = -1
+        st_x, st_y = random.randint(-100, 100), random.randint(min(150 * direction, 250 * direction),
+                                                               max(150 * direction, 250 * direction))
+        en_x, en_y = random.randint(-100, 100), random.randint(min(-1 * 150 * direction, -1 * 250 * direction),
+                                                               max(-1 * 150 * direction, -1 * 250 * direction))
+        chains = ActionChains(driver)
+        chains \
+            .move_to_element(main_el) \
+            .move_by_offset(st_x, st_y) \
+            .click_and_hold() \
+            .move_by_offset(- 1 * st_x + en_x, -1 * st_y + en_y) \
+            .release() \
+            .perform()
+        sleep(random.random())
+        if random.random() < 0.3:
+            break
