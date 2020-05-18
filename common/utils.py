@@ -216,15 +216,19 @@ def swipe_random(driver, max_swipe=4):
     chains = ActionChains(driver)
     chains.move_to_element(main_el).perform()
     for i in range(max_swipe):
-        print(f"for in {i}")
         # スワイプの方向を上下どちらにするか決める
         direction = 1
         if random.random() < 0.3:
             direction = -1
-        st_x, st_y = random.randint(-100, 100), random.randint(min(150 * direction, 250 * direction),
-                                                               max(150 * direction, 250 * direction))
-        en_x, en_y = random.randint(-100, 100), random.randint(min(-1 * 150 * direction, -1 * 250 * direction),
-                                                               max(-1 * 150 * direction, -1 * 250 * direction))
+
+        # リンクをクリックしないように一定距離を動かす必要がある
+        st_x = random.randint(-100, 100)
+        st_y = random.randint(min(150 * direction, 250 * direction),
+                              max(150 * direction, 250 * direction))
+        en_x = random.randint(-100, 100)
+        en_y = random.randint(min(-1 * 150 * direction, -1 * 250 * direction),
+                              max(-1 * 150 * direction, -1 * 250 * direction))
+
         chains = ActionChains(driver)
         chains \
             .move_to_element(main_el) \

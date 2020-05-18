@@ -39,10 +39,10 @@ class DollStatusRepository():
                 UPDATE
                     doll_status
                 SET
-                    last_booted_at = now(),
+                    last_booted_at = now()
                 WHERE
                     doll_id = %s
-                ''')
+                ''', (self.doll_id,))
             self.conn.commit()
 
     def unlock_doll(self):

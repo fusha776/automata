@@ -3,7 +3,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from automata.common.settings import WAIT_LOADING_SECONDS
 from automata.common.utils import wait, loading
-from automata.common.utils import to_num
+from automata.common.utils import to_num, swipe_random
 
 
 class Post():
@@ -46,6 +46,9 @@ class Post():
 
         # アクション回数を更新
         self.action_counters_repository.increase_action_count({'fav': 1})
+
+        # ランダムにスワイプ
+        swipe_random(self.driver)
         return True
 
     @loading
