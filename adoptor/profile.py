@@ -55,9 +55,6 @@ class Profile():
         Conditions:
             [プロフィール]
         '''
-        # ランダムにスワイプ
-        swipe_random(self.driver)
-
         # 何回もdictを参照させて失敗してるから、チェック機構を入れよう
         if type(insta_id) is not str:
             self.mediator.logger.error(f'文字列ではないURLが参照されました: {insta_id}')
@@ -75,9 +72,6 @@ class Profile():
         Conditions:
             [プロフィール]
         '''
-        # ランダムにスワイプ
-        swipe_random(self.driver)
-
         # 何回もdictを参照させて失敗してるから、チェック機構を入れよう
         if type(insta_id) is not str:
             self.mediator.logger.error(f'文字列ではないURLが参照されました: {insta_id}')
