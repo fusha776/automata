@@ -97,7 +97,8 @@ class Model():
             last_booted_at DATETIME,
             today_booted_times TINYINT,
             is_running TINYINT,
-            is_blocked TINYINT
+            is_blocked TINYINT,
+            is_needed_to_relogin TINYINT
         )'''
 
         recent_touched_histories = '''

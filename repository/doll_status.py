@@ -81,7 +81,7 @@ class DollStatusRepository():
         with self.conn.cursor() as cursor:
             cursor.execute('''
                 SELECT
-                    is_blocked
+                    is_blocked, is_needed_to_relogin
                 FROM
                     doll_status
                 WHERE
@@ -112,7 +112,24 @@ class DollStatusRepository():
                 UPDATE
                     doll_status
                 SET
-                    is_blocked = 0
+                    is_blocked = 0,
+                    is_needed_to_relogin = 0
+                WHERE
+                    doll_id = %s
+            ''', (self.doll_id,))
+            self.conn.commit()
+
+    def check_natural_unblock(self):
+        '''自然ブロック解除を試す
+        失敗したときのために、再ログインフラグをセットする
+        '''
+        with self.conn.cursor() as cursor:
+            cursor.execute('''
+                UPDATE
+                    doll_status
+                SET
+                    is_blocked = 0,
+                    is_needed_to_relogin = 1
                 WHERE
                     doll_id = %s
             ''', (self.doll_id,))

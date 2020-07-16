@@ -32,11 +32,11 @@ class Post():
         # あんまりずらすとオススメ投稿が見えるのでちょっとだけ動かす
         self.driver.execute_script('window.scrollBy(0, 100)')
 
-        already_faved = self.driver.find_elements_by_xpath('//section/span/button/*[contains(@aria-label, "取り消す")]')
+        already_faved = self.driver.find_elements_by_xpath('//*[contains(@aria-label, "取り消す")]')
         if already_faved:
             return False
 
-        fav_btn = self.driver.find_elements_by_xpath('//section/span/button/*[contains(@aria-label, "いいね")]')
+        fav_btn = self.driver.find_elements_by_xpath('//*[contains(@aria-label, "いいね")]')
         if not fav_btn:
             return False
         fav_btn[0].click()

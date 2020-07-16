@@ -62,11 +62,14 @@ class Doll():
                 self.facade.switch_to_instagram_home()
                 self.facade.abilities.modal.turn_on()
 
-                # 前日ブロック中なら再ログインする
+                # 必要に応じて再ログインする
                 self.check_block_status()
 
                 # 処理を開始
                 self.operate()
+
+                # エラー無しで完了したら、ブロック系フラグをリセットする
+                self.doll_status_repository.reset_blocked_mark()
         except Exception:
             self.facade.abilities.logger.error('フロー実行中にエラーが発生', exc_info=True)
             self.facade.abilities.logger.debug(f'発生したページ: {self.facade.abilities.driver.current_url}')
@@ -82,25 +85,31 @@ class Doll():
             self.facade.abilities.close()
 
     def check_block_status(self):
-        '''前日ブロックだったら再ログインする
+        '''必要に応じて再ログインする
         '''
-        is_blocked = self.doll_status_repository.load_block_status()['is_blocked']  # bool(1) -> True, bool(0) -> False
-        if is_blocked:
+        block_status = self.doll_status_repository.load_block_status()  # bool(1) -> True, bool(0) -> False
+        self.facade.abilities.logger.debug('check blocked')
+
+        # 再ログイン (通常起動のトライに失敗していれば、もう一度ブロックされているはず)
+        if block_status['is_blocked'] & block_status['is_needed_to_relogin']:
+            self.facade.abilities.logger.debug('try to relogin')
             self._relogin()
+
+        # 次回再ログインの保険を付けて、ブロック状態を解除して通常起動
+        if block_status['is_blocked']:
+            self.doll_status_repository.check_natural_unblock()
 
     def _relogin(self):
         '''ブロック状態のリセットのため、ログアウト - ログイン を行う
         '''
-        # リログインせずに一日待ってくれだって
+        # ログアウト
+        # たまに失敗するみたいだけど理由不明.
+        # ブラウザキャッシュを消して対処した方が良いかも、でもそれだと多重ログインでブロックされやすくなるかも
+        self.facade.abilities.profile.switch_to_user_profile(self.facade.abilities.login_id)
+        self.facade.abilities.profile.logout()
 
-        # # ログアウト
-        # # たまに失敗するみたいだけど理由不明.
-        # # ブラウザキャッシュを消して対処した方が良いかも、でもそれだと多重ログインでブロックされやすくなるかも
-        # self.facade.abilities.profile.switch_to_user_profile(self.facade.abilities.login_id)
-        # self.facade.abilities.profile.logout()
-
-        # # 再ログイン
-        # self.facade.switch_to_instagram_home()
+        # 再ログイン
+        self.facade.switch_to_instagram_home()
 
         # ここまで成功したらDB更新
         self.facade.abilities.logger.debug(f'ブロック状態のため再ログインを実施')

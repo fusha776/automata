@@ -68,10 +68,10 @@ class Conductor():
                 return None
 
             # 当日ブロック有りなら最終起動時間を更新し、別のDollを呼び出す
-            if ((next_doll['is_blocked'] == 1) and
-                    next_doll['last_booted_at'].strftime('%Y%m%d') == self.today):
-                self.doll_status_repository.update_booted_dt(next_doll['doll_id'])
-                return load_next_doll_except_daily_blocked()
+            # if ((next_doll['is_blocked'] == 1) and
+            #         (next_doll['last_booted_at'].strftime('%Y%m%d') == self.today)):
+            #     self.doll_status_repository.update_booted_dt(next_doll['doll_id'])
+            #     return load_next_doll_except_daily_blocked()
             return next_doll
 
         # デバッグ動作なら即返却

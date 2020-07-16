@@ -57,6 +57,12 @@ class DollQuery():
         '''起動条件を満たす停止中のdollから、最終起動時間が一番古いdollを呼び出す
         要求action回数一応渡しているけど、現状Dollの具象クラスに埋め込みにしてる
 
+        起動条件：
+            Doll停止中かつ、以下のどれか
+            * 今日の稼働回数が規定値以下
+            * 再ログインフラグが立っている
+            * ブロックされてから3日以上経過
+
         Returns:
             dict: 対象の doll group に属するdoll の当日のアクション集計
         '''
@@ -79,16 +85,21 @@ class DollQuery():
                     t2.follow_per_day,
                     t2.unfollow_per_day,
                     t1.last_booted_at,
-                    t1.is_blocked
+                    t1.is_blocked,
+                    t1.is_needed_to_relogin
                 FROM
                     doll_status t1
                         LEFT JOIN doll_settings t2 ON t1.doll_id = t2.doll_id
                         LEFT JOIN today_actions t3 ON t1.doll_id = t3.doll_id
                 WHERE
-                    t1.is_running = 0 and
-                    t2.fav_per_day + t2.follow_per_day + t2.unfollow_per_day > ifnull(t3.fav, 0) + ifnull(t3.follow, 0) + ifnull(t3.unfollow, 0)
+                    t1.is_running = 0 and (
+                        ((t1.is_blocked = 0) and
+                         (t2.fav_per_day + t2.follow_per_day + t2.unfollow_per_day > ifnull(t3.fav, 0) + ifnull(t3.follow, 0) + ifnull(t3.unfollow, 0))) or
+                        (t1.is_needed_to_relogin = 1) or
+                        ((t1.is_blocked = 1) and (DATEDIFF(%s, t1.last_booted_at) >= 2))
+                    )
                 ORDER BY
                     t1.last_booted_at
-                ''', (self.today,))
+                ''', (self.today, self.today))
             res = cursor.fetchone()
         return res

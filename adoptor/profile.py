@@ -3,6 +3,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import StaleElementReferenceException
 from automata.common.utils import wait, loading
 from automata.common.utils import close_ajax, reopen_ajax, swipe_random
 from automata.common.settings import LOADING_NEIGHBORS_LIMIT
@@ -235,16 +236,22 @@ class Profile():
                 waiting_cnt += 1
                 continue
 
-            # フォローボタンをキャッシュ
-            el_fbtns = user.find_elements_by_xpath('.//button')
+            # element not attatched でエラーをよく吐くので、その場合はリロードさせる
+            # 再現性が難しく、発生したりしなかったりする
+            # リトライ超過で中止させる部分はそのまま流用
+            try:
+                # フォローボタンをキャッシュ
+                el_fbtns = user.find_elements_by_xpath('.//button')
 
-            # インスタIDボタンをキャッシュ
-            id_btn = None
-            for el in user.find_elements_by_xpath('.//a'):  # ストーリー有無によって、aタグの数が異なる
-                insta_id = el.get_attribute('title')
-                if insta_id:
-                    id_btn = el
-                    break
+                # インスタIDボタンをキャッシュ
+                id_btn = None
+                for el in user.find_elements_by_xpath('.//a'):  # ストーリー有無によって、aタグの数が異なる
+                    insta_id = el.get_attribute('title')
+                    if insta_id:
+                        id_btn = el
+                        break
+            except StaleElementReferenceException:
+                waiting_cnt += 1
 
             # ボタン取得に失敗したらskip
             if not (id_btn and el_fbtns):

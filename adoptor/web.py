@@ -29,6 +29,12 @@ class Web():
     def check_logined(self):
         '''ログイン済みでなければログインページへ飛ぶ
         '''
+        login_check_btn = self.driver.find_elements_by_xpath('//*[contains(text(), "としてログイン")]')
+        if login_check_btn:
+            login_check_btn[0].click()
+            # ログイン失敗をチェック
+            self.mediator.modal.check_login_fault()
+
         login_btn = self.driver.find_elements_by_xpath('//button[contains(text(), "ログイン")]')
         if not login_btn:
             return
@@ -42,6 +48,7 @@ class Web():
     def login(self):
         '''ログインする
         '''
+        self.mediator.logger.debug('Instagram ログインを開始')
         id_input = self.driver.find_element_by_xpath('//input[contains(@type, "text")]')
         id_input.send_keys(self.login_id)
 
