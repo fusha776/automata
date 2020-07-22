@@ -4,7 +4,7 @@ from automata.doll.doll import Doll
 from automata.doll.utils import fillna
 
 
-class NineJapan(Doll):
+class NJ(Doll):
     def __init__(self, doll_id, conn, today):
         super().__init__(doll_id, conn, today)
 

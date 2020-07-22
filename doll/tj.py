@@ -1,7 +1,7 @@
 from automata.doll.doll import Doll
 
 
-class TjMagazine(Doll):
+class TJ(Doll):
     '''所定のハッシュタグから人気投稿を探し、該当アカの詳細を回収する
 
     WARN:
